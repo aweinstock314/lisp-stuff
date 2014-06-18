@@ -53,3 +53,10 @@ stack" (the implied response being "You can do so much
 pretty sure it lets you define custom comment delimiters 
 through some mechanism called "immediate words" or 
 something similar).
+
+currying.scm:
+Some functions relating to dealing with curried forms of 
+functions. When writing OCaml, implicit currying/easy 
+partial application/pointfree style seem to make some parts 
+of the code a lot cleaner/simpler. This is a sketch of an 
+attempt to port that simplicity into a lisp.
