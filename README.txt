@@ -37,3 +37,19 @@ sometimes, but isn't available seperately from loop.
 list-collector and with-list-collector provide that feature 
 seperately. The earlier sketches seem horribly messy (even 
 though they work) compared to the finished version.
+
+readermacro_example.cl:
+Redefines "3" and "4" to be comment delimiters, similar to 
+C's "/*" and "*/". THIS IS A HORRIBLE IDEA TO USE DIRECTLY 
+IN SERIOUS CODE. A serious application of something very 
+similar is redefining "#!" and "!#" to be comment 
+delimiters so that lisp files can start with 
+"#!/path/to/lisp" in order to be run via "chmod +x 
+foo.lisp; ./foo.lisp". This was written in response to a 
+colleague reading me a joke/quote about "FORTH lets you 
+redefine 4 to be a word [function] that pushes 3 onto the 
+stack" (the implied response being "You can do so much 
+(better|worse) in lisp!", although to be fair to forth, I'm 
+pretty sure it lets you define custom comment delimiters 
+through some mechanism called "immediate words" or 
+something similar).
