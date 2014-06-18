@@ -1,0 +1,13 @@
+Hey, you're kinda hot
+No way!
+I like Justin Bieber....a lot
+"Is a sentence fragment." is a sentence fragment.
+"Yields falsehood when preceeded by its quotation" yields falsehood when preceeded by its quotation.
+This is not a random-looking sentence; this is a representation of a random-looking sentence.
+Is a sentence fragment.
+This message was sent to you through a chat server.
+Wibbly-wobbly... timey-wimey... stuff...
+(define (foldl fn lst acc) (if (null? lst) acc (foldl fn (cdr lst) (fn acc (car lst)))))
+(define (map-with-foldl fn lst) (reverse (foldl (lambda (acc elem) (cons (fn elem) acc)) lst '())))
+Eschew obfuscation.
+int n=10; switch(n%2) { do { case 1: printf("%d is odd\n",n); n--; case 0: printf("%d is even\n",n); n--; } while(n > 0); } //duff's device for unrolling a loop
