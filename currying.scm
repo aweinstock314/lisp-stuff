@@ -1,15 +1,13 @@
 ; take a function and its arity, and return the curried form of it
 (define (curry f n)
-    (letrec (
-             (curry-step (lambda (acc) (lambda (x)
+    (letrec ((curry-step (lambda (acc) (lambda (x)
                 (let ((new-acc (cons x acc)))
                     (if (= (length new-acc) n)
                         (apply f (reverse new-acc))
-                        (lambda (y)  ((curry-step new-acc) y))
+                        (curry-step new-acc)
                     )
                 )
-             )))
-            )
+            ))))
         (curry-step '())
     )
 )
@@ -27,5 +25,7 @@
 ;example uses
 (define +c (curry + 2))
 (map (+c 1) '(1 2 3 4 5))
+;note how much shorter this is than:
+(map (lambda (x) (+ x 1)) '(1 2 3 4 5))
 (curried-funcall +c 1 1)
 |#
