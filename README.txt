@@ -60,3 +60,8 @@ functions. When writing OCaml, implicit currying/easy
 partial application/pointfree style seem to make some parts 
 of the code a lot cleaner/simpler. This is a sketch of an 
 attempt to port that simplicity into a lisp.
+
+currying.cl:
+currying.scm translated into common lisp, and with an 
+auxillary macro (defcurry) that automatically uses 
+curried-apply on the defined functions.
