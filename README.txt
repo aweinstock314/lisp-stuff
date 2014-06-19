@@ -38,6 +38,10 @@ list-collector and with-list-collector provide that feature
 seperately. The earlier sketches seem horribly messy (even 
 though they work) compared to the finished version.
 
+defvariadic.cl:
+Some macros that wrap CL's destructuring-bind to make it 
+more convenient to use.
+
 readermacro_example.cl:
 Redefines "3" and "4" to be comment delimiters, similar to 
 C's "/*" and "*/". THIS IS A HORRIBLE IDEA TO USE DIRECTLY 
