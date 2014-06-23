@@ -12,6 +12,10 @@ it. During the summer (on June 17th, 2014, immediately
 prior to the start of an RCOS meeting) I asked Dr. 
 Goldschmidt for permission to post it, which he granted.
 
+kawa_jogl:
+Graphical stuff involving Kawa scheme and JavaOpenGL. See 
+recursive README.txt inside subdirectory for details.
+
 heapsort.cl:
 Contains an example implementation of heapsort written in 
 both common lisp, and C++. This was written in to show 
