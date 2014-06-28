@@ -18,3 +18,6 @@ A simple "hello world" style program that instantiates an
 OpenGL window and displays a triangle in it, and arranges 
 for the triangle to be recolored randomly 5 times per 
 second.
+
+asteroids2d:
+Asteroids game.
