@@ -2,6 +2,7 @@
 (define GL2 javax.media.opengl.GL2)
 (define KeyEvent java.awt.event.KeyEvent)
 (define printf java.lang.System:out:printf)
+(define-alias ArrayList java.util.ArrayList)
 
 (define-macro (thunk expr) `(lambda () ,expr))
 (define-macro (mvbind vars expr . body) `(call-with-values (thunk ,expr) (lambda ,vars ,@body)))
@@ -9,6 +10,20 @@
 
 ; this has multiple-evaluation problems, but works fine for simple cases (does kawa have get-setf-expansion?)
 (define-macro (inc! var delta) `(set! ,var (+ ,var ,delta)))
+(define-macro (java-iterate iterable-expr varname . body)
+    (define iterable-name (gentemp))
+    (define real-varname (if (list? varname) (car varname) varname))
+    (define vartype (if (list? varname) (cadr varname) java.lang.Object))
+    `(let ((,iterable-name ::java.util.Iterator (invoke ,iterable-expr 'iterator))
+           (,real-varname ::,vartype #!null))
+        (do ()
+            ((not (invoke ,iterable-name 'hasNext)) #!void)
+            (set! ,real-varname (invoke ,iterable-name 'next))
+            ,@body
+        )
+    )
+)
+
 
 (define *screen-width* 640)
 (define *screen-height* 480)
@@ -32,7 +47,11 @@
     ) (upto sides))
 )
 
-(define-simple-class ship ()
+(define-simple-class drawer () interface: #t
+    ((draw gl2::GL2) #!abstract)
+)
+
+(define-simple-class ship (drawer)
     (x 0) (y 0)
     (rot (/ tau 4))
     (velocity 0)
@@ -49,6 +68,7 @@
         (if (> x 1) (set! x -1))
         (if (> y 1) (set! y -1))
     )
+    ((draw gl2::GL2) (drawPolygon gl2 color (getVerts)))
 )
 
 (define player-ship (ship))
@@ -70,10 +90,13 @@
     (player-ship:updatePosition)
     (printf "pos: %s, %s\n" player-ship:x player-ship:y)
 )
-(define (render gl2::GL2)
+
+(define *render-queue*::ArrayList[drawer] (ArrayList))
+(*render-queue*:add player-ship)
+(define (render gl2::GL2 things-to-draw::ArrayList[drawer])
     (handle-movement)
     (gl2:glClear gl2:GL_COLOR_BUFFER_BIT)
-    (drawPolygon gl2 player-ship:color (player-ship:getVerts))
+    (java-iterate things-to-draw (d drawer) (d:draw gl2))
 )
 
 (define (drawPolygon gl2::GL2 color verts)
@@ -86,7 +109,7 @@
 )
 (glcanv:addGLEventListener (object (javax.media.opengl.GLEventListener)
     ((*init*) #!void)
-    ((display drawable) (render ((drawable:getGL):getGL2)))
+    ((display drawable) (render ((drawable:getGL):getGL2) *render-queue*))
     ((init drawable) #!void)
     ((dispose drawable) #!void)
     ((reshape drawable x y w h) #!void)
