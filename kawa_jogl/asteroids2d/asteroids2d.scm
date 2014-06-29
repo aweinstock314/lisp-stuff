@@ -4,7 +4,7 @@
 (define printf java.lang.System:out:printf)
 (define-alias ArrayList java.util.ArrayList)
 
-(define-macro (thunk expr) `(lambda () ,expr))
+(define-macro (thunk expr) `(lambda (. ,(gentemp)) ,expr))
 (define-macro (mvbind vars expr . body) `(call-with-values (thunk ,expr) (lambda ,vars ,@body)))
 (define-macro (mvlist expr) `(call-with-values (thunk ,expr) list))
 
@@ -40,6 +40,7 @@
 (define (constantly x) (lambda (. args) x))
 (define tau (* 8 (atan 1)))
 (define atan2 java.lang.Math:atan2)
+(define (random x) (* x (java.lang.Math:random)))
 
 (define-simple-class vertex ()
     (x::double 0) (y::double 0)
@@ -79,9 +80,10 @@
     ((draw gl2::GL2) #!abstract)
 )
 
+
 (define (drawPolygon gl2::GL2 color verts)
     (gl2:glBegin gl2:GL_POLYGON)
-    (apply gl2:glColor3d (map (lambda (x) (/ x 255)) color))
+    (apply gl2:glColor3d color)
     (for-each (lambda (v::vertex)
         (gl2:glVertex2d v:x v:y)
     ) verts)
@@ -90,6 +92,7 @@
 
 (define-constant +shot-color+ '(255 255 255))
 (define-constant +shot-speed+ .1)
+(define-constant +shot-size+ .01)
 
 (define-simple-class shot (drawer)
     (x 0) (y 0)
@@ -105,7 +108,7 @@
         (set! x (+ x (* velocity (cos rot))))
         (set! y (+ y (* velocity (sin rot))))
     )
-    ((draw gl2) (drawPolygon gl2 +shot-color+ (calc-poly (vertex x y) rot (constantly .01) 10)))
+    ((draw gl2) (drawPolygon gl2 +shot-color+ (calc-poly (vertex x y) rot (constantly +shot-size+) 10)))
 )
 
 (define-constant +frames-between-shots+ 5)
@@ -116,7 +119,7 @@
     (rot (/ tau 4))
     (velocity 0)
     (size .1)
-    (color '(255 128 0))
+    (color '(1 .5 0))
     (shooting-cooldown 0) ; in frames for now, probably should make more robust by handling milliseconds
     ((*init*) #!void)
     ((getVerts) (calc-poly (vertex x y) rot (lambda (i) (if (= i 0) (* 2 size) size)) 3)) ; isosceles triangle
@@ -146,12 +149,12 @@
 (define-constant +rotation-delta+ (/ tau 64))
 (define-constant +velocity-delta+ .01)
 (define (event-loop)
-    (if (*currently-held-keys*:contains KeyEvent:VK_LEFT) (inc! player-ship:rot +rotation-delta+))
-    (if (*currently-held-keys*:contains KeyEvent:VK_RIGHT) (inc! player-ship:rot (- +rotation-delta+)))
-    (if (*currently-held-keys*:contains KeyEvent:VK_UP) (inc! player-ship:velocity +velocity-delta+))
-    (if (*currently-held-keys*:contains KeyEvent:VK_DOWN) (inc! player-ship:velocity (- +velocity-delta+)))
-    (if (and (*currently-held-keys*:contains KeyEvent:VK_SPACE) (= player-ship:shooting-cooldown 0))
-        (player-ship:shoot))
+    (define-macro (if-key-held key . body) `(if (*currently-held-keys*:contains (static-field KeyEvent ',key)) (begin ,@body)))
+    (if-key-held VK_LEFT (inc! player-ship:rot +rotation-delta+))
+    (if-key-held VK_RIGHT (inc! player-ship:rot (- +rotation-delta+)))
+    (if-key-held VK_UP (inc! player-ship:velocity +velocity-delta+))
+    (if-key-held VK_DOWN (inc! player-ship:velocity (- +velocity-delta+)))
+    (if-key-held VK_SPACE (if (= player-ship:shooting-cooldown 0) (player-ship:shoot)))
     (player-ship:updatePosition)
     (define wr (wrap -1 1))
     (java-iterate *active-shots* (s shot iter)
