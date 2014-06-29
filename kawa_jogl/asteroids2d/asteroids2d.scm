@@ -40,17 +40,38 @@
 (define (constantly x) (lambda (. args) x))
 (define tau (* 8 (atan 1)))
 (define atan2 java.lang.Math:atan2)
-(define (cart->polar x y) (values (sqrt (+ (square x) (square y))) (atan2 y x)))
-(define (polar->cart m t) (values (* m (cos t)) (* m (sin t))))
-(define (cart+ x1 y1 x2 y2) (values (+ x1 x2) (+ y1 y2)))
+
+(define-simple-class vertex ()
+    (x::double 0) (y::double 0)
+    ((*init*) #!void)
+    ((*init* ix iy)
+        (set! x ix)
+        (set! y iy)
+    )
+    ((toString)::String (String:format "c(%f, %f)" x y))
+)
+
+(define-simple-class polar-vertex ()
+    (m::double 0) (t::double 0)
+    ((*init*) #!void)
+    ((*init* im it)
+        (set! m im)
+        (set! t it)
+    )
+    ((toString)::String (String:format "p(%f, %f)" m t))
+)
+
+(define (cart->polar v::vertex) (polar-vertex (sqrt (+ (square v:x) (square v:y))) (atan2 v:y v:x)))
+(define (polar->cart p::polar-vertex) (vertex (* p:m (cos p:t)) (* p:m (sin p:t))))
+(define (cart+ v1::vertex v2::vertex) (vertex (+ v1:x v2:x) (+ v1:y v2:y)))
 
 ; returns a list of vertices of a "regular" polygon, with center at pos, first vertex at rot radians
 ; the radius parameter is a function to allow non-regular polygons such as isosceles triangles
 (define (calc-poly pos rot radiusf sides)
     (map (lambda (i)
         (define rad (radiusf i))
-        (define polyvert (mvlist (polar->cart rad (+ rot (* tau (/ i sides))))))
-        (mvlist (apply cart+ (append pos polyvert)))
+        (define polyvert (polar->cart (polar-vertex rad (+ rot (* tau (/ i sides))))))
+        (cart+ pos polyvert)
     ) (upto sides))
 )
 
@@ -61,8 +82,8 @@
 (define (drawPolygon gl2::GL2 color verts)
     (gl2:glBegin gl2:GL_POLYGON)
     (apply gl2:glColor3d (map (lambda (x) (/ x 255)) color))
-    (for-each (lambda (xy)
-        (apply gl2:glVertex2d xy)
+    (for-each (lambda (v::vertex)
+        (gl2:glVertex2d v:x v:y)
     ) verts)
     (gl2:glEnd)
 )
@@ -84,7 +105,7 @@
         (set! x (+ x (* velocity (cos rot))))
         (set! y (+ y (* velocity (sin rot))))
     )
-    ((draw gl2) (drawPolygon gl2 +shot-color+ (calc-poly (list x y) rot (constantly .01) 10)))
+    ((draw gl2) (drawPolygon gl2 +shot-color+ (calc-poly (vertex x y) rot (constantly .01) 10)))
 )
 
 (define-constant +frames-between-shots+ 5)
@@ -98,7 +119,7 @@
     (color '(255 128 0))
     (shooting-cooldown 0) ; in frames for now, probably should make more robust by handling milliseconds
     ((*init*) #!void)
-    ((getVerts) (calc-poly (list x y) rot (lambda (i) (if (= i 0) (* 2 size) size)) 3)) ; isosceles triangle
+    ((getVerts) (calc-poly (vertex x y) rot (lambda (i) (if (= i 0) (* 2 size) size)) 3)) ; isosceles triangle
     ((updatePosition)
         (if (> shooting-cooldown 0) (inc! shooting-cooldown -1))
         (set! x (+ x (* velocity (cos rot))))
