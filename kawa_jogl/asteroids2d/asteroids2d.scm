@@ -10,6 +10,8 @@
 
 ; this has multiple-evaluation problems, but works fine for simple cases (does kawa have get-setf-expansion?)
 (define-macro (inc! var delta) `(set! ,var (+ ,var ,delta)))
+(define-macro (inplace! fn var) `(set! ,var (,fn ,var)))
+
 (define-macro (java-iterate iterable-expr varname . body)
     (define iterable-name (gentemp))
     (define real-varname (if (list? varname) (car varname) varname))
@@ -29,8 +31,14 @@
 (define *screen-height* 480)
 
 (define (upto x) (do ((i 0 (+ i 1)) (acc '() (cons i acc))) ((= i x) (reverse! acc))))
+(define (clamp lo hi) (lambda (val) (max lo (min hi val))))
+(define (wrap lo hi) (lambda (val)
+    (cond ((< val lo) hi)
+          ((> val hi) lo)
+          (else val)
+    )
+))
 (define (constantly x) (lambda (. args) x))
-(define (mod-w/cast n::int d::int) (mod n d)) ; allows clamping floats to screen width/height
 (define tau (* 8 (atan 1)))
 (define atan2 java.lang.Math:atan2)
 (define (cart->polar x y) (values (sqrt (+ (square x) (square y))) (atan2 y x)))
@@ -62,11 +70,8 @@
     ((updatePosition)
         (set! x (+ x (* velocity (cos rot))))
         (set! y (+ y (* velocity (sin rot))))
-        ; slight hack, try to fix with mod or something later
-        (if (< x -1) (set! x 1))
-        (if (< y -1) (set! y 1))
-        (if (> x 1) (set! x -1))
-        (if (> y 1) (set! y -1))
+        (inplace! (wrap -1 1) x)
+        (inplace! (wrap -1 1) y)
     )
     ((draw gl2::GL2) (drawPolygon gl2 color (getVerts)))
 )
