@@ -1,4 +1,30 @@
 (require 'list-lib)
+
+(define-macro (with-all-forms-exported . forms)
+    (letrec ((helper (lambda (form acc)
+                (if (not (list? form)) acc
+                (case (car form)
+                    ((define-alias) (cons (cadr form) acc))
+                    ((define define-constant define-macro)
+                        (cons (cond
+                            ((pair? (cadr form)) (caadr form))
+                            ((symbol? (cadr form)) (cadr form))
+                            (else (error "Unexpected type as the second element of a define form"))
+                        ) acc)
+                    )
+                    (else acc)
+                ))
+            )))
+        (define export-list (fold helper '() forms))
+        (display "Automagically exporting the following from with-all-forms-exported: ") (newline)
+        (display export-list) (newline)
+        `(begin ,@forms ,@(if (not (null? export-list)) `((module-export ,@export-list)) '()))
+    )
+)
+(module-export with-all-forms-exported)
+
+(with-all-forms-exported
+
 (define GL2 javax.media.opengl.GL2)
 (define KeyEvent java.awt.event.KeyEvent)
 (define printf java.lang.System:out:printf)
@@ -90,4 +116,4 @@
     (gl2:glEnd)
 )
 
-(module-export GL2 KeyEvent printf ArrayList thunk mvbind mvlist inc! inplace! java-iterate curry complement upto clamp wrap within? constantly tau atan2 random vertex polar-vertex cart->polar polar->cart cart+ calc-poly drawPolygon)
+) ; end of with-all-forms-exported
