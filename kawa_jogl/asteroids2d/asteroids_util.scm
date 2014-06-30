@@ -26,6 +26,12 @@
     )
 )
 
+(define-macro (curry expr)
+    (define argsname (gentemp))
+    `(lambda (. ,argsname) (apply ,@expr ,argsname))
+)
+(define (complement pred) (lambda (. args) (not (apply pred args))))
+
 (define (upto x) (do ((i 0 (+ i 1)) (acc '() (cons i acc))) ((= i x) (reverse! acc))))
 (define (clamp lo hi) (lambda (val) (max lo (min hi val))))
 (define (wrap lo hi) (lambda (val)
@@ -34,6 +40,8 @@
           (else val)
     )
 ))
+(define (within? lo hi) (lambda (val) (<= lo val hi)))
+
 (define (constantly x) (lambda (. args) x))
 (define tau (* 8 (atan 1)))
 (define atan2 java.lang.Math:atan2)
@@ -82,5 +90,4 @@
     (gl2:glEnd)
 )
 
-
-(module-export GL2 KeyEvent printf ArrayList thunk mvbind mvlist inc! inplace! java-iterate upto clamp wrap constantly tau atan2 random vertex polar-vertex cart->polar polar->cart cart+ calc-poly drawPolygon)
+(module-export GL2 KeyEvent printf ArrayList thunk mvbind mvlist inc! inplace! java-iterate curry complement upto clamp wrap within? constantly tau atan2 random vertex polar-vertex cart->polar polar->cart cart+ calc-poly drawPolygon)
