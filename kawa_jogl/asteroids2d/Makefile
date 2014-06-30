@@ -1,5 +1,5 @@
 .PHONY: all clean
-all: asteroids2d.class
+all: asteroids_util.class asteroids2d.class
 
 asteroids_util.class: asteroids_util.scm
 	java kawa.repl -C asteroids_util.scm

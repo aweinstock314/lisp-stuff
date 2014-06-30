@@ -4,7 +4,7 @@
     (letrec ((helper (lambda (form acc)
                 (if (not (list? form)) acc
                 (case (car form)
-                    ((define-alias) (cons (cadr form) acc))
+                    ((define-alias define-simple-class) (cons (cadr form) acc))
                     ((define define-constant define-macro)
                         (cons (cond
                             ((pair? (cadr form)) (caadr form))
@@ -29,8 +29,9 @@
 (define KeyEvent java.awt.event.KeyEvent)
 (define printf java.lang.System:out:printf)
 (define-alias ArrayList java.util.ArrayList)
+(define-alias Number java.lang.Number)
 
-(define-macro (thunk expr) `(lambda (. ,(gentemp)) ,expr))
+(define-macro (thunk . body) `(lambda (. ,(gentemp)) ,@body))
 (define-macro (mvbind vars expr . body) `(call-with-values (thunk ,expr) (lambda ,vars ,@body)))
 (define-macro (mvlist expr) `(call-with-values (thunk ,expr) list))
 
@@ -52,14 +53,21 @@
     )
 )
 
-(define-macro (accumulate-range rng . body)
+(define-macro (pascal-for rng . body)
     (define var (car rng))
     (define lo (gentemp)) (define hi (gentemp)) (define step (gentemp))
-    (define head (gentemp)) (define tail (gentemp))
-    `(let* ((,lo ,(cadr rng)) (,hi ,(caddr rng)) (,step ,(cadddr rng))
-            (,head (cons '() '())) (,tail ,head))
+    `(let ((,lo ,(cadr rng)) (,hi ,(caddr rng)) (,step ,(cadddr rng)))
         (do ((,var ,lo (+ ,var ,step)))
-            ((= ,var ,hi) ,head)
+            ((= ,var ,hi) #!void)
+            ,@body
+        )
+    )
+)
+
+(define-macro (accumulate-range rng . body)
+    (define head (gentemp)) (define tail (gentemp))
+    `(let* ((,head (cons '() '())) (,tail ,head))
+        (pascal-for ,rng
             (set! (cdr ,tail) (cons (begin ,@body) (cdr ,tail)))
             (inplace! cdr ,tail)
         )
@@ -81,7 +89,7 @@
           (else val)
     )
 ))
-(define (within? lo hi) (lambda (val) (<= lo val hi)))
+(define (within? lo hi) (lambda (val::Number)::boolean (<= lo val hi)))
 
 (define (constantly x) (lambda (. args) x))
 (define tau (* 8 (atan 1)))
@@ -114,11 +122,15 @@
 
 ; returns a list of vertices of a "regular" polygon, with center at pos, first vertex at rot radians
 ; the radius parameter is a function to allow non-regular polygons such as isosceles triangles
-(define (calc-poly pos::vertex rot::double radiusf::gnu.mapping.Procedure sides::int)
+(define (calc-poly x::double y::double rot::double radiusf::gnu.mapping.Procedure sides::int)
     (accumulate-range (i 0 sides 1)
-        (define rad::double (radiusf i))
-        (define polyvert::vertex (polar->cart (polar-vertex rad (+ rot (* tau (/ i sides))))))
-        (cart+ pos polyvert)
+        (let* ((rad::double (radiusf i))
+               (ang::double (+ rot (* tau (/ i sides))))
+               (vx::double (* rad (cos ang)))
+               (vy::double (* rad (sin ang)))
+            )
+            (vertex (+ x vx) (+ y vy))
+        )
     )
 )
 
