@@ -95,6 +95,7 @@
 (define tau (* 8 (atan 1)))
 (define atan2 java.lang.Math:atan2)
 (define (random x) (* x (java.lang.Math:random)))
+(define (random-range lo hi) (+ lo (* (- hi lo) (java.lang.Math:random))))
 
 (define-simple-class vertex ()
     (x::double 0) (y::double 0)
