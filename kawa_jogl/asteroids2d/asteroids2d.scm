@@ -4,10 +4,10 @@
 (define-constant +screen-height+ 480)
 
 ; the real values are double this, since these are used as plus/minus
-(define-constant +logical-width+ 2)
-(define-constant +logical-height+ 2)
-(define-constant +viewport-width+ 1)
-(define-constant +viewport-height+ 1)
+(define-constant +logical-width+ 4)
+(define-constant +logical-height+ 4)
+(define-constant +viewport-width+ 2)
+(define-constant +viewport-height+ 2)
 
 (define-simple-class drawer () interface: #t
     ((draw gl2::GL2) #!abstract)
@@ -116,6 +116,16 @@
 (define (render gl2::GL2)
     (event-loop) ; might be a good idea to move this out of render later
     (gl2:glClear gl2:GL_COLOR_BUFFER_BIT)
+    (define-constant (set-projection gl2::GL2 width::double height::double)
+        (gl2:glMatrixMode gl2:GL_PROJECTION)
+        (gl2:glLoadIdentity)
+        (gl2:glOrtho (- width) width 
+                     (- height) height
+                     1 -1)
+;        (define proj-matrix (int[] length: 16))
+;        (gl2:glGetIntegerv gl2:GL_PROJECTION_MATRIX proj-matrix 0)
+;        (display proj-matrix) (newline)
+    )
     (define-constant (prepare-frame gl2::GL2 cx cy ox oy) ; center and offset
         (gl2:glMatrixMode gl2:GL_MODELVIEW)
         (gl2:glLoadIdentity)
@@ -131,7 +141,12 @@
         (draw-background gl2)
         (draw-foreground gl2)
     )
+    (set-projection gl2 +logical-width+ +logical-height+)
+    (gl2:glViewport 0 0 640 480)
+    (draw-frame gl2 0 0 0 0)
+    (set-projection gl2 +viewport-width+ +viewport-height+)
     (gl2:glViewport 0 0 320 240)
+    ; display 9 copies to ensure that objects on the wrapped sides appear properly, a straightforward optimization (based on the quadrant of the ship) could probably cut it down to 4 copies, and there might be even better ideas
     (pascal-for (i -1 2 1) (pascal-for (j -1 2 1)
         (let ((ox (* 2 i +logical-width+)) (oy (* 2 j +logical-height+)))
             (prepare-frame gl2 player-ship:x player-ship:y ox oy)
@@ -144,12 +159,6 @@
             (draw-foreground gl2)
         )
     ))
-    (gl2:glViewport 0 240 320 240)
-    (draw-frame gl2 -1 1 0 0)
-    (gl2:glViewport 320 0 320 240)
-    (draw-frame gl2 1 -1 0 0)
-    (gl2:glViewport 320 240 320 240)
-    (draw-frame gl2 1 1 0 0)
 )
 (glcanv:addGLEventListener (object (javax.media.opengl.GLEventListener)
     ((*init*) #!void)
