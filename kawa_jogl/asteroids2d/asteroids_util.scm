@@ -122,23 +122,23 @@
 
 ; returns a list of vertices of a "regular" polygon, with center at pos, first vertex at rot radians
 ; the radius parameter is a function to allow non-regular polygons such as isosceles triangles
-(define (calc-poly x::double y::double rot::double radiusf::gnu.mapping.Procedure sides::int)
+(define (calc-poly rot::double radiusf::gnu.mapping.Procedure sides::int)
     (accumulate-range (i 0 sides 1)
         (let* ((rad::double (radiusf i))
                (ang::double (+ rot (* tau (/ i sides))))
                (vx::double (* rad (cos ang)))
                (vy::double (* rad (sin ang)))
             )
-            (vertex (+ x vx) (+ y vy))
+            (vertex vx vy)
         )
     )
 )
 
-(define (drawPolygon gl2::GL2 color verts)
+(define (drawPolygon gl2::GL2 x y color verts)
     (gl2:glBegin gl2:GL_POLYGON)
     (apply gl2:glColor3d color)
     (for-each (lambda (v::vertex)
-        (gl2:glVertex2d v:x v:y)
+        (gl2:glVertex2d (+ v:x x) (+ v:y y))
     ) verts)
     (gl2:glEnd)
 )
