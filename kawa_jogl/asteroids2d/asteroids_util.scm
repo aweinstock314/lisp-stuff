@@ -35,8 +35,12 @@
 (define-macro (mvbind vars expr . body) `(call-with-values (thunk ,expr) (lambda ,vars ,@body)))
 (define-macro (mvlist expr) `(call-with-values (thunk ,expr) list))
 
-; this has multiple-evaluation problems, but works fine for simple cases (does kawa have get-setf-expansion?)
-(define-macro (inc! var delta) `(set! ,var (+ ,var ,delta)))
+; the first way has multiple-evaluation problems, but works fine for simple cases
+; the second way (commented), should be the right way, but generates bytecode that gives verify errors unless extra annotations are done at the call site
+(define-macro (inc! var delta)
+    `(set! ,var (+ ,var ,delta))
+    ;(let ((loc (gentemp))) `(let ((,loc (location ,var))) (set! (,loc) (+ (,loc) ,delta))))
+)
 (define-macro (inplace! fn var) `(set! ,var (,fn ,var)))
 
 (define-macro (java-iterate iterable-expr varname . body)
