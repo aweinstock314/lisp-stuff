@@ -98,6 +98,7 @@
 (define (constantly x) (lambda (. args) x))
 (define tau (* 8 (atan 1)))
 (define atan2 java.lang.Math:atan2)
+(define (rad->deg r) (/ (* r 360) tau))
 (define (random x) (* x (java.lang.Math:random)))
 (define (random-range lo hi) (+ lo (* (- hi lo) (java.lang.Math:random))))
 
@@ -125,7 +126,7 @@
 (define (polar->cart p::polar-vertex) (vertex (* p:m (cos p:t)) (* p:m (sin p:t))))
 (define (cart+ v1::vertex v2::vertex) (vertex (+ v1:x v2:x) (+ v1:y v2:y)))
 
-; returns a list of vertices of a "regular" polygon, with center at pos, first vertex at rot radians
+; returns a list of vertices of a "regular" polygon, with the first vertex at rot radians
 ; the radius parameter is a function to allow non-regular polygons such as isosceles triangles
 (define (calc-poly rot::double radiusf::gnu.mapping.Procedure sides::int)
     (accumulate-range (i 0 sides 1)
@@ -139,13 +140,19 @@
     )
 )
 
-(define (drawPolygon gl2::GL2 x y color verts)
+(define (drawPolygon gl2::GL2 x y rot color verts)
+    (gl2:glMatrixMode gl2:GL_MODELVIEW)
+    (gl2:glPushMatrix)
+    (gl2:glLoadIdentity)
+    (gl2:glTranslated x y 0)
+    (gl2:glRotated (rad->deg rot) 0 0 1)
     (gl2:glBegin gl2:GL_POLYGON)
     (apply gl2:glColor3d color)
     (for-each (lambda (v::vertex)
-        (gl2:glVertex2d (+ v:x x) (+ v:y y))
+        (gl2:glVertex2d v:x v:y)
     ) verts)
     (gl2:glEnd)
+    (gl2:glPopMatrix)
 )
 
 ) ; end of with-all-forms-exported

@@ -34,7 +34,7 @@
         (set! x (+ x (* velocity (cos rot))))
         (set! y (+ y (* velocity (sin rot))))
     )
-    ((draw gl2) (drawPolygon gl2 x y +shot-color+ verts))
+    ((draw gl2) (drawPolygon gl2 x y rot +shot-color+ verts))
 )
 
 (define-constant +frames-between-shots+ 5)
@@ -51,8 +51,8 @@
     (shooting-cooldown 0) ; in frames for now, probably should make more robust by handling milliseconds
     ((*init*) (recalcVerts!))
     (verts)
-    ((recalcVerts!) (set! verts (calc-poly rot (lambda (i) (if (= i 0) (* 2 size) size)) 3))) ; isosceles triangle
-    ((rotate delta::double) (inc! rot delta) (recalcVerts!))
+    ((recalcVerts!) (set! verts (calc-poly 0 (lambda (i) (if (= i 0) (* 2 size) size)) 3))) ; isosceles triangle
+    ((rotate delta::double) (inc! rot delta))
     ((getVerts) verts)
     ((updatePosition!)
         (if (> shooting-cooldown 0) (inc! shooting-cooldown -1))
@@ -61,7 +61,7 @@
         (inplace! (wrap (- +logical-width+) +logical-width+) x)
         (inplace! (wrap (- +logical-height+) +logical-height+) y)
     )
-    ((draw gl2) (drawPolygon gl2 x y color (getVerts)))
+    ((draw gl2) (drawPolygon gl2 x y rot color (getVerts)))
     ((shoot)
         (*active-shots*:add (shot x y rot velocity))
         (set! shooting-cooldown +frames-between-shots+)
@@ -84,7 +84,7 @@
         (set! color (list (random-range .25 .65) 0 0))
         (set! verts (calc-poly (random tau) (constantly size) (random-range 3 9)))
     )
-    ((draw gl2) (drawPolygon gl2 x y color verts))
+    ((draw gl2) (drawPolygon gl2 x y rot color verts))
     ((updatePosition!)
         (set! x (+ x (* velocity (cos rot))))
         (set! y (+ y (* velocity (sin rot))))
