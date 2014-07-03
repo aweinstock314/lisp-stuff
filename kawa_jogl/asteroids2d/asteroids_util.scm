@@ -25,12 +25,13 @@
 
 (with-all-forms-exported
 
-(define GL2 javax.media.opengl.GL2)
-(define KeyEvent java.awt.event.KeyEvent)
 (define printf java.lang.System:out:printf)
+(define-alias GL2 javax.media.opengl.GL2)
+(define-alias KeyEvent java.awt.event.KeyEvent)
 (define-alias ArrayList java.util.ArrayList)
 (define-alias Number java.lang.Number)
 (define-alias FloatBuffer java.nio.FloatBuffer)
+(define-constant newDirectFloatBuffer com.jogamp.common.nio.Buffers:newDirectFloatBuffer)
 
 (define-macro (thunk . body) `(lambda (. ,(gentemp)) ,@body))
 (define-macro (mvbind vars expr . body) `(call-with-values (thunk ,expr) (lambda ,vars ,@body)))
@@ -129,31 +130,40 @@
 
 ; returns a list of vertices of a "regular" polygon, with the first vertex at rot radians
 ; the radius parameter is a function to allow non-regular polygons such as isosceles triangles
+(define *polygons-buffer* ::FloatBuffer (newDirectFloatBuffer 0))
 (define (calc-poly rot::double radiusf::gnu.mapping.Procedure sides::int)
-    (let ((buf (com.jogamp.common.nio.Buffers:newDirectFloatBuffer (* 3 sides))))
+    (let* ((old-capacity (*polygons-buffer*:capacity))
+           (new-buffer (newDirectFloatBuffer (+ old-capacity (* 3 sides))))
+        )
+        (*polygons-buffer*:rewind)
+        (new-buffer:put *polygons-buffer*)
         (pascal-for (i 0 sides 1)
             (let* ((rad::double (radiusf i))
                    (ang::double (+ rot (* tau (/ i sides))))
                    (vx::float (* rad (cos ang)))
                    (vy::float (* rad (sin ang)))
                 )
-                (buf:put vx) (buf:put vy) (buf:put 0)
+                (new-buffer:put vx) (new-buffer:put vy) (new-buffer:put 0)
             )
         )
-        buf
+        (set! *polygons-buffer* new-buffer)
+        (cons (/ old-capacity 3) sides) ; return an (offset, size) pair for glDrawArrays to use
     )
 )
 
-(define (drawPolygon gl2::GL2 x y rot color verts::FloatBuffer)
+(define (set-polygons-buffer gl2::GL2)
+    (*polygons-buffer*:rewind)
+    (gl2:glVertexPointer 3 gl2:GL_FLOAT 0 *polygons-buffer*)
+)
+
+(define (drawPolygon gl2::GL2 x y rot color verts)
     (gl2:glMatrixMode gl2:GL_MODELVIEW)
     (gl2:glPushMatrix)
     (gl2:glLoadIdentity)
     (gl2:glTranslated x y 0)
     (gl2:glRotated (rad->deg rot) 0 0 1)
-    (verts:rewind)
     (apply gl2:glColor3d color)
-    (gl2:glVertexPointer 3 gl2:GL_FLOAT 0 verts)
-    (gl2:glDrawArrays gl2:GL_POLYGON 0 (/ (verts:limit) 3))
+    (gl2:glDrawArrays gl2:GL_POLYGON (car verts) (cdr verts))
     (gl2:glPopMatrix)
 )
 

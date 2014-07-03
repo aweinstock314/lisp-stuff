@@ -16,6 +16,7 @@
 (define-constant +shot-color+ '(255 255 255))
 (define-constant +shot-speed+ .1)
 (define-constant +shot-size+ .01)
+(define-constant +shot-verts+ (calc-poly 0 (constantly +shot-size+) 10))
 
 (define-simple-class shot (drawer)
     (x 0) (y 0)
@@ -26,15 +27,12 @@
         (set! y iy)
         (set! rot irot)
         (set! velocity (+ ivel +shot-speed+)) ; shots start off with the ship's velocity added to the constant
-        (recalcVerts!)
     )
-    (verts)
-    ((recalcVerts!) (set! verts (calc-poly rot (constantly +shot-size+) 10)))
     ((updatePosition!)
         (set! x (+ x (* velocity (cos rot))))
         (set! y (+ y (* velocity (sin rot))))
     )
-    ((draw gl2) (drawPolygon gl2 x y rot +shot-color+ verts))
+    ((draw gl2) (drawPolygon gl2 x y rot +shot-color+ +shot-verts+))
 )
 
 (define-constant +frames-between-shots+ 5)
@@ -49,7 +47,7 @@
     (size .1)
     (color '(1 .5 0))
     (shooting-cooldown 0) ; in frames for now, probably should make more robust by handling milliseconds
-    ((*init*) (recalcVerts!))
+    ((*init*) (recalcVerts!) (set! rot (/ tau 4)))
     (verts)
     ((recalcVerts!) (set! verts (calc-poly 0 (lambda (i) (if (= i 0) (* 2 size) size)) 3))) ; isosceles triangle
     ((rotate delta::double) (inc! rot delta))
@@ -195,7 +193,12 @@
 (glcanv:addGLEventListener (object (javax.media.opengl.GLEventListener)
     ((*init*) #!void)
     ((display drawable) (render ((drawable:getGL):getGL2)))
-    ((init drawable) #!void)
+    ((init drawable)
+        (let ((gl ((drawable:getGL):getGL2)))
+            (gl:glEnableClientState gl:GL_VERTEX_ARRAY)
+            (set-polygons-buffer gl)
+        )
+    )
     ((dispose drawable) #!void)
     ((reshape drawable x y w h) #!void)
 ))
