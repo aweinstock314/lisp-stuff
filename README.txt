@@ -73,3 +73,8 @@ currying.cl:
 currying.scm translated into common lisp, and with an 
 auxillary macro (defcurry) that automatically uses 
 curried-apply on the defined functions.
+
+destructuring_bind.scm:
+Translation of CL's destructuring-bind to Scheme. Currently 
+inefficient, as it doesn't yet use a macro for the 
+invokation.
