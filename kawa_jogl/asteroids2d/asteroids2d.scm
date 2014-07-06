@@ -197,36 +197,39 @@
     ((*init*) #!void)
     ((display drawable) (render ((drawable:getGL):getGL2)))
     ((init drawable)
-        (let ((gl ((drawable:getGL):getGL2)))
+        (let ((gl (javax.media.opengl.DebugGL2 ((drawable:getGL):getGL2))))
             (gl:glEnableClientState gl:GL_VERTEX_ARRAY)
             (set-polygons-buffer gl)
-;            (set! *shader-program* (make-shader-program gl
-;"
-;#version 150
-;
-;in vec3 position;
-;
-;void main()
-;{
-;    gl_Position = vec4(position, 1.0);
-;}
-;"
-;
-;"
-;#version 150
-;
-;out vec4 outColor;
-;
-;void main()
-;{
-;    outColor = vec4(1.0, 1.0, 1.0, 1.0);
-;}
-;"
-;            ))
-;            (define pos-attrib ::int (gl:glGetAttribLocation *shader-program* "position"))
-;            (gl:glVertexAttribPointer pos-attrib 3 gl:GL_FLOAT #f 0 0)
-;            (gl:glEnableVertexAttribArray pos-attrib)
-;            (gl:glUseProgram *shader-program*)
+            (set! *shader-program* (make-shader-program gl
+"
+#version 120
+
+//in vec3 position;
+
+void main()
+{
+    //gl_Position = vec4(position, 1.0);
+    gl_FrontColor = gl_Color;
+    gl_Position = ftransform();
+}
+"
+
+"
+#version 120
+
+//out vec4 outColor;
+
+void main()
+{
+    //outColor = vec4(1.0, 1.0, 1.0, 1.0);
+    gl_FragColor = gl_Color;
+}
+"
+            ))
+            ;(define pos-attrib ::int (gl:glGetAttribLocation *shader-program* "position"))
+            ;(gl:glVertexAttribPointer pos-attrib 3 gl:GL_FLOAT #f 0 0)
+            ;(gl:glEnableVertexAttribArray pos-attrib)
+            (gl:glUseProgram *shader-program*)
         )
     )
     ((dispose drawable) #!void)
