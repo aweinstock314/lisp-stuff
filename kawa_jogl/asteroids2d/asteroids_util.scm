@@ -204,7 +204,6 @@
 (define (drawPolygon gl2::GL2 x y rot color verts)
     (gl2:glMatrixMode gl2:GL_MODELVIEW)
     (gl2:glPushMatrix)
-    (gl2:glLoadIdentity)
     (gl2:glTranslated x y 0)
     (gl2:glRotated (rad->deg rot) 0 0 1)
     (apply gl2:glColor3d color)
