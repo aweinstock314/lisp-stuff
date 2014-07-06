@@ -154,12 +154,13 @@
 (define *vbo-pointers* ::int[] (int[] length: 1))
 
 (define (set-polygons-buffer gl2::GL2)
-    (*polygons-buffer*:rewind)
-    (gl2:glVertexPointer 3 gl2:GL_FLOAT 0 *polygons-buffer*)
-;    (gl2:glGenBuffers 1 *vbo-pointers* 0)
-;    (gl2:glBindBuffer gl2:GL_ARRAY_BUFFER (*vbo-pointers* 0))
 ;    (*polygons-buffer*:rewind)
-;    (gl2:glBufferData gl2:GL_ARRAY_BUFFER (*polygons-buffer*:capacity) *polygons-buffer* gl2:GL_DYNAMIC_DRAW)
+;    (gl2:glVertexPointer 3 gl2:GL_FLOAT 0 *polygons-buffer*)
+    (gl2:glGenBuffers 1 *vbo-pointers* 0)
+    (gl2:glBindBuffer gl2:GL_ARRAY_BUFFER (*vbo-pointers* 0))
+    (*polygons-buffer*:rewind)
+    ; the multiplication by 4 is because glBufferData takes a size in bytes
+    (gl2:glBufferData gl2:GL_ARRAY_BUFFER (* (*polygons-buffer*:capacity) 4) *polygons-buffer* gl2:GL_DYNAMIC_DRAW)
 )
 
 (define (shader-valid? gl2::GL2 shader-id)
