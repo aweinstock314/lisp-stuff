@@ -151,9 +151,42 @@
     )
 )
 
+(define *vbo-pointers* ::int[] (int[] length: 1))
+
 (define (set-polygons-buffer gl2::GL2)
     (*polygons-buffer*:rewind)
     (gl2:glVertexPointer 3 gl2:GL_FLOAT 0 *polygons-buffer*)
+;    (gl2:glGenBuffers 1 *vbo-pointers* 0)
+;    (gl2:glBindBuffer gl2:GL_ARRAY_BUFFER (*vbo-pointers* 0))
+;    (*polygons-buffer*:rewind)
+;    (gl2:glBufferData gl2:GL_ARRAY_BUFFER (*polygons-buffer*:capacity) *polygons-buffer* gl2:GL_DYNAMIC_DRAW)
+)
+
+(define (shader-valid? gl2::GL2 shader-id)
+    (define tmp (int[] 0))
+    (gl2:glGetShaderiv shader-id gl2:GL_COMPILE_STATUS tmp 0)
+    (tmp 0)
+)
+
+(define (glShaderSource gl2::GL2 id::int src::String)
+    (gl2:glShaderSource id 1 (String[] src) (int[] (src:length)) 0)
+)
+
+(define (make-shader-program gl2::GL2 vertex-source::String fragment-source::String)
+    (let ((vert-shader-id (gl2:glCreateShader gl2:GL_VERTEX_SHADER))
+           (frag-shader-id (gl2:glCreateShader gl2:GL_FRAGMENT_SHADER))
+           (shader-program (gl2:glCreateProgram))
+        )
+        (glShaderSource gl2 vert-shader-id vertex-source)
+        (glShaderSource gl2 frag-shader-id fragment-source)
+        (gl2:glCompileShader vert-shader-id)
+        (gl2:glCompileShader frag-shader-id)
+        (printf "shader validity: %s, %s\n" (shader-valid? gl2 vert-shader-id) (shader-valid? gl2 frag-shader-id))
+        (gl2:glAttachShader shader-program vert-shader-id)
+        (gl2:glAttachShader shader-program frag-shader-id)
+        (gl2:glLinkProgram shader-program)
+        shader-program
+    )
 )
 
 (define (drawPolygon gl2::GL2 x y rot color verts)
