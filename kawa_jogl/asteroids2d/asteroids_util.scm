@@ -82,6 +82,18 @@
     )
 )
 
+(define (slurp-file filename::String)::String
+    (define buf (java.lang.StringBuilder))
+    (define file (open-input-file filename))
+    (do ((line (read-line file 'concat) (read-line file 'concat)))
+        ((equal? line '#!eof) (buf:toString))
+        (buf:append line)
+    )
+)
+
+; Would be nice to have CL's sharp-dot read-macro for this (so the callsite is just #.(slurp-file "foo"), and this extra macro is unneccessary)
+(define-macro (file-as-string-constant filename) (slurp-file filename))
+
 (define-macro (curry expr)
     (define argsname (gentemp))
     `(lambda (. ,argsname) (apply ,@expr ,argsname))

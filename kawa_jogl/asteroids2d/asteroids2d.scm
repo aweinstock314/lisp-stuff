@@ -200,33 +200,7 @@
         (let ((gl (javax.media.opengl.DebugGL2 ((drawable:getGL):getGL2))))
             ;(gl:glEnableClientState gl:GL_VERTEX_ARRAY)
             (set-polygons-buffer gl)
-            (set! *shader-program* (make-shader-program gl
-"
-#version 120
-
-//in vec3 position;
-attribute vec3 position;
-vec4 tmp;
-
-void main()
-{
-    gl_FrontColor = gl_Color;
-    tmp = vec4(position, 1.0);
-    gl_Position = gl_ModelViewProjectionMatrix * tmp;
-}
-"
-
-"
-#version 120
-
-//out vec4 outColor;
-
-void main()
-{
-    gl_FragColor = gl_Color;
-}
-"
-            ))
+            (set! *shader-program* (make-shader-program gl (file-as-string-constant "identityshader.vert") (file-as-string-constant "identityshader.frag")))
             (define pos-attrib ::int (gl:glGetAttribLocation *shader-program* "position"))
             (gl:glVertexAttribPointer pos-attrib 3 gl:GL_FLOAT #f 0 0)
             (gl:glEnableVertexAttribArray pos-attrib)
