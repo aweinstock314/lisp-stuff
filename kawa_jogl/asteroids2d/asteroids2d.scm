@@ -13,10 +13,10 @@
     ((draw gl2::GL2) #!abstract)
 )
 
-(define-constant +shot-color+ '(255 255 255))
+(define-constant +shot-color+ '(1 1 1))
 (define-constant +shot-speed+ .1)
 (define-constant +shot-size+ .01)
-(define-constant +shot-verts+ (calc-poly 0 (constantly +shot-size+) 10))
+(define-constant +shot-verts+ (calc-poly 0 (constantly +shot-size+) 10 (constantly (apply values +shot-color+))))
 
 (define-simple-class shot (drawer)
     (x 0) (y 0)
@@ -49,7 +49,7 @@
     (shooting-cooldown 0) ; in frames for now, probably should make more robust by handling milliseconds
     ((*init*) (recalcVerts!) (set! rot (/ tau 4)))
     (verts)
-    ((recalcVerts!) (set! verts (calc-poly 0 (lambda (i) (if (= i 0) (* 2 size) size)) 3))) ; isosceles triangle
+    ((recalcVerts!) (set! verts (calc-poly 0 (lambda (i) (if (= i 0) (* 2 size) size)) 3 (constantly (apply values color))))) ; isosceles triangle
     ((rotate delta::double) (inc! rot delta))
     ((getVerts) verts)
     ((updatePosition!)
@@ -80,7 +80,7 @@
         (set! velocity (random-range +min-asteroid-ivel+ +max-asteroid-ivel+))
         (set! size (random-range +min-asteroid-size+ +max-asteroid-size+))
         (set! color (list (random-range .25 .65) 0 0))
-        (set! verts (calc-poly (random tau) (constantly size) (random-range 3 9)))
+        (set! verts (calc-poly (random tau) (constantly size) (random-range 3 9) (constantly (apply values color))))
     )
     ((draw gl2) (drawPolygon gl2 x y rot color verts))
     ((updatePosition!)
@@ -129,17 +129,28 @@
 )
 
 (define-constant +background-intensity+ .5)
+
+(define-constant background (calc-poly (/ tau 8) (constantly (* 2 +logical-width+)) 4
+    (lambda (i) (case i
+        ((0) (values +background-intensity+ 0 0))
+        ((1) (values +background-intensity+ +background-intensity+ 0))
+        ((2) (values 0 +background-intensity+ 0))
+        ((3) (values 0 +background-intensity+ +background-intensity+))
+    ))
+))
+
 (define (draw-background gl2::GL2)
-    (gl2:glBegin GL2:GL_QUADS)
-    (gl2:glColor3d +background-intensity+ 0 0)
-    (gl2:glVertex2d (- +logical-width+) +logical-height+)
-    (gl2:glColor3d +background-intensity+ +background-intensity+ 0)
-    (gl2:glVertex2d +logical-width+ +logical-height+)
-    (gl2:glColor3d 0 +background-intensity+ 0)
-    (gl2:glVertex2d +logical-width+ (- +logical-height+))
-    (gl2:glColor3d 0 +background-intensity+ +background-intensity+)
-    (gl2:glVertex2d (- +logical-width+) (- +logical-height+))
-    (gl2:glEnd)
+;    (gl2:glBegin GL2:GL_QUADS)
+;    (gl2:glColor3d +background-intensity+ 0 0)
+;    (gl2:glVertex2d (- +logical-width+) +logical-height+)
+;    (gl2:glColor3d +background-intensity+ +background-intensity+ 0)
+;    (gl2:glVertex2d +logical-width+ +logical-height+)
+;    (gl2:glColor3d 0 +background-intensity+ 0)
+;    (gl2:glVertex2d +logical-width+ (- +logical-height+))
+;    (gl2:glColor3d 0 +background-intensity+ +background-intensity+)
+;    (gl2:glVertex2d (- +logical-width+) (- +logical-height+))
+;    (gl2:glEnd)
+    (drawPolygon gl2 0 0 0 '(0 0 1) background)
 )
 
 (define (render gl2::GL2)
@@ -172,7 +183,7 @@
         (draw-foreground gl2)
     )
     (set-projection gl2 +logical-width+ +logical-height+)
-    ;(set-projection gl2 (* 3 +logical-width+) (* 3 +logical-height+))
+    ;(set-projection gl2 (* 2 +logical-width+) (* 2 +logical-height+))
     (gl2:glViewport 0 0 640 480)
     (draw-frame gl2 0 0 0 0)
     (set-projection gl2 +viewport-width+ +viewport-height+)
@@ -210,6 +221,9 @@
             (define pos-attrib ::int (gl:glGetAttribLocation *shader-program* "position"))
             (gl:glVertexAttribPointer pos-attrib 3 gl:GL_FLOAT #f 0 0)
             (gl:glEnableVertexAttribArray pos-attrib)
+;            (define color-attrib ::int (gl:glGetAttribLocation *shader-program* "color"))
+;            (gl:glVertexAttribPointer color-attrib 3 gl:GL_FLOAT #f 12 12)
+;            (gl:glEnableVertexAttribArray color-attrib)
             (gl:glUseProgram *shader-program*)
         )
     )

@@ -114,8 +114,8 @@
 (define tau (* 8 (atan 1)))
 (define atan2 java.lang.Math:atan2)
 (define (rad->deg r) (/ (* r 360) tau))
-(define (random x) (* x (java.lang.Math:random)))
-(define (random-range lo hi) (+ lo (* (- hi lo) (java.lang.Math:random))))
+(define (random x)::float (* x (java.lang.Math:random)))
+(define (random-range lo hi)::float (+ lo (* (- hi lo) (java.lang.Math:random))))
 
 (define-simple-class vertex ()
     (x::double 0) (y::double 0)
@@ -144,9 +144,10 @@
 ; returns a list of vertices of a "regular" polygon, with the first vertex at rot radians
 ; the radius parameter is a function to allow non-regular polygons such as isosceles triangles
 (define *polygons-buffer* ::FloatBuffer (newDirectFloatBuffer 0))
-(define (calc-poly rot::double radiusf::gnu.mapping.Procedure sides::int)
+(define (calc-poly rot::double radiusf::gnu.mapping.Procedure sides::int colorf::gnu.mapping.Procedure)
     (let* ((old-capacity (*polygons-buffer*:capacity))
-           (new-buffer (newDirectFloatBuffer (+ old-capacity (* 3 sides))))
+           (floats-per-vertex 3)
+           (new-buffer (newDirectFloatBuffer (+ old-capacity (* floats-per-vertex sides))))
         )
         (*polygons-buffer*:rewind)
         (new-buffer:put *polygons-buffer*)
@@ -156,11 +157,18 @@
                    (vx::float (* rad (cos ang)))
                    (vy::float (* rad (sin ang)))
                 )
-                (new-buffer:put vx) (new-buffer:put vy) (new-buffer:put 0)
+                (let-values (((r g b) (colorf i))) (let ((rf ::float r) (gf ::float g) (bf::float b))
+(new-buffer:put vx)
+(new-buffer:put vy)
+(new-buffer:put 0)
+;(new-buffer:put rf)
+;(new-buffer:put gf)
+;(new-buffer:put bf)
+                ))
             )
         )
         (set! *polygons-buffer* new-buffer)
-        (cons (/ old-capacity 3) sides) ; return an (offset, size) pair for glDrawArrays to use
+        (cons (/ old-capacity floats-per-vertex) sides) ; return an (offset, size) pair for glDrawArrays to use
     )
 )
 
@@ -171,6 +179,11 @@
 ;    (gl2:glVertexPointer 3 gl2:GL_FLOAT 0 *polygons-buffer*)
     (gl2:glGenBuffers 1 *vbo-pointers* 0)
     (gl2:glBindBuffer gl2:GL_ARRAY_BUFFER (*vbo-pointers* 0))
+    (*polygons-buffer*:rewind)
+    (let ((tmp (float[] length: (*polygons-buffer*:capacity))))
+        (*polygons-buffer*:get tmp)
+        (display tmp) (newline)
+    )
     (*polygons-buffer*:rewind)
     ; the multiplication by 4 is because glBufferData takes a size in bytes
     (gl2:glBufferData gl2:GL_ARRAY_BUFFER (* (*polygons-buffer*:capacity) 4) *polygons-buffer* gl2:GL_DYNAMIC_DRAW)
