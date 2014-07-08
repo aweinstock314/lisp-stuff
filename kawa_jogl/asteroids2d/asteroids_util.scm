@@ -229,7 +229,7 @@
     )
 )
 
-(define (drawPolygon gl2::GL2 x y rot color verts)
+(define (drawPolygon gl2::GL2 x y rot verts)
     (gl2:glMatrixMode gl2:GL_MODELVIEW)
     (gl2:glPushMatrix)
     (gl2:glTranslated x y 0)

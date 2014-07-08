@@ -32,7 +32,7 @@
         (set! x (+ x (* velocity (cos rot))))
         (set! y (+ y (* velocity (sin rot))))
     )
-    ((draw gl2) (drawPolygon gl2 x y rot +shot-color+ +shot-verts+))
+    ((draw gl2) (drawPolygon gl2 x y rot +shot-verts+))
 )
 
 (define-constant +frames-between-shots+ 5)
@@ -59,7 +59,7 @@
         (inplace! (wrap (- +logical-width+) +logical-width+) x)
         (inplace! (wrap (- +logical-height+) +logical-height+) y)
     )
-    ((draw gl2) (drawPolygon gl2 x y rot color (getVerts)))
+    ((draw gl2) (drawPolygon gl2 x y rot (getVerts)))
     ((shoot)
         (*active-shots*:add (shot x y rot velocity))
         (set! shooting-cooldown +frames-between-shots+)
@@ -82,7 +82,7 @@
         (set! color (list (random-range .25 .65) 0 0))
         (set! verts (calc-poly (random tau) (constantly size) (random-range 3 9) (constantly (apply values color))))
     )
-    ((draw gl2) (drawPolygon gl2 x y rot color verts))
+    ((draw gl2) (drawPolygon gl2 x y rot verts))
     ((updatePosition!)
         (set! x (+ x (* velocity (cos rot))))
         (set! y (+ y (* velocity (sin rot))))
@@ -140,7 +140,7 @@
 ))
 
 (define (draw-background gl2::GL2)
-    (drawPolygon gl2 0 0 0 '(0 0 1) background)
+    (drawPolygon gl2 0 0 0 background)
 )
 
 (define (render gl2::GL2)
