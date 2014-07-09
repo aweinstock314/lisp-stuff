@@ -27,4 +27,4 @@ Some code in java, depending on just the standard library,
 that should make it trivial to use a hierarchical jar 
 structure to distribute dependencies (as opposed to 
 "messier" solutions such as distributing seperate jars, or 
-manually flattening the dependencies into a single jar.
+manually flattening the dependencies into a single jar.)
