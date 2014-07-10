@@ -75,14 +75,25 @@
     )
 )
 
-(define-macro (accumulate-range rng . body)
+(define-macro (with-list-collector col . body)
     (define head (gentemp)) (define tail (gentemp))
-    `(let* ((,head (cons '() '())) (,tail ,head))
-        (pascal-for ,rng
-            (set! (cdr ,tail) (cons (begin ,@body) (cdr ,tail)))
-            (inplace! cdr ,tail)
-        )
+    (define elem (gentemp))
+    `(let* ((,head (cons '() '())) (,tail ,head)
+            (,col (lambda (,elem)
+                (set! (cdr ,tail) (cons ,elem (cdr ,tail)))
+                (inplace! cdr ,tail)
+           )))
+        ,@body
         (cdr ,head)
+    )
+)
+
+(define-macro (accumulate-range rng . body)
+    (define col (gentemp))
+    `(with-list-collector ,col
+        (pascal-for ,rng
+            (,col (begin ,@body))
+        )
     )
 )
 
