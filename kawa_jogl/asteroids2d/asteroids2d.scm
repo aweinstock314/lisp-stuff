@@ -16,12 +16,14 @@
 (define-constant +shot-color+ '(1 1 1))
 (define-constant +shot-speed+ .1)
 (define-constant +shot-size+ .01)
+(define-constant +shot-duration+ 45)
 (define-constant +shot-verts+ (calc-poly 0 (constantly +shot-size+) 10 (constantly (apply values +shot-color+))))
 
 (define-simple-class shot (drawer)
-    (x 0) (y 0)
-    (rot 0)
-    (velocity 0)
+    (x::double 0) (y::double 0)
+    (rot::double 0)
+    (velocity::double 0)
+    (frames-until-decay::int +shot-duration+)
     ((*init* ix iy irot ivel)
         (set! x ix)
         (set! y iy)
@@ -29,9 +31,13 @@
         (set! velocity (+ ivel +shot-speed+)) ; shots start off with the ship's velocity added to the constant
     )
     ((updatePosition!)
+        (inc! frames-until-decay -1)
         (set! x (+ x (* velocity (cos rot))))
         (set! y (+ y (* velocity (sin rot))))
+        (inplace! (wrap (- +logical-width+) +logical-width+) x)
+        (inplace! (wrap (- +logical-height+) +logical-height+) y)
     )
+    ((expired?) (< frames-until-decay 0))
     ((draw gl2) (drawPolygon gl2 x y rot +shot-verts+))
 )
 
@@ -46,7 +52,7 @@
     (velocity::double 0)
     (size .1)
     (color '(1 .5 0))
-    (shooting-cooldown 0) ; in frames for now, probably should make more robust by handling milliseconds
+    (shooting-cooldown::int 0) ; in frames for now, probably should make more robust by handling milliseconds
     ((*init*) (recalcVerts!) (set! rot (/ tau 4)))
     (verts)
     ((recalcVerts!) (set! verts (calc-poly 0 (lambda (i) (if (= i 0) (* 2 size) size)) 3 (constantly (apply values color))))) ; isosceles triangle
@@ -102,9 +108,6 @@
 (jf:setDefaultCloseOperation javax.swing.JFrame:EXIT_ON_CLOSE)
 (define glcanv (javax.media.opengl.awt.GLCanvas))
 
-(define-constant in-bounds? (within? (- +logical-width+) +logical-width+))
-(define-constant (out-of-bounds? x::java.lang.Number) (not (in-bounds? x)))
-
 (define *currently-held-keys* (java.util.HashSet))
 (define-constant +rotation-delta+ (/ tau 64))
 (define-constant +velocity-delta+ .01)
@@ -119,8 +122,7 @@
     (player-ship:updatePosition!)
     (java-iterate *active-shots* (s shot iter)
         (s:updatePosition!)
-        (if (or (out-of-bounds? s:x) (out-of-bounds? s:y))
-            (iter:remove))
+        (if (s:expired?) (iter:remove))
     )
     (java-iterate *active-asteroids* (a asteroid)
         (a:updatePosition!)
