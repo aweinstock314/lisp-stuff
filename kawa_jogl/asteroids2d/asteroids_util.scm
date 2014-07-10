@@ -38,6 +38,7 @@
 (define-macro (mvlist expr) `(call-with-values (thunk ,expr) list))
 (define-macro (returning let-pair . body) `(let (,let-pair) ,@body ,(car let-pair)))
 (define-macro (set!* vals exprs) `(begin ,@(map (lambda (val expr) `(set! ,val ,expr)) vals exprs)))
+(define-macro (define-gensyms . names) `(begin ,@(map (lambda (name) `(define ,name (gentemp))) names)))
 
 ; the first way has multiple-evaluation problems, but works fine for simple cases
 ; the second way (commented), should be the right way, but generates bytecode that sometimes gives verify errors (revision 7952 fixed a simplified version of this error, which turned out to have been oversimplified)
@@ -66,7 +67,7 @@
 
 (define-macro (pascal-for rng . body)
     (define var (car rng))
-    (define lo (gentemp)) (define hi (gentemp)) (define step (gentemp))
+    (define-gensyms lo hi step)
     `(let ((,lo ,(cadr rng)) (,hi ,(caddr rng)) (,step ,(cadddr rng)))
         (do ((,var ,lo (+ ,var ,step)))
             ((= ,var ,hi) #!void)
@@ -76,8 +77,7 @@
 )
 
 (define-macro (with-list-collector col . body)
-    (define head (gentemp)) (define tail (gentemp))
-    (define elem (gentemp))
+    (define-gensyms head tail elem)
     `(let* ((,head (cons '() '())) (,tail ,head)
             (,col (lambda (,elem)
                 (set! (cdr ,tail) (cons ,elem (cdr ,tail)))
@@ -89,7 +89,7 @@
 )
 
 (define-macro (accumulate-range rng . body)
-    (define col (gentemp))
+    (define-gensyms col)
     `(with-list-collector ,col
         (pascal-for ,rng
             (,col (begin ,@body))
@@ -110,7 +110,7 @@
 (define-macro (file-as-string-constant filename) (slurp-file filename))
 
 (define-macro (curry expr)
-    (define argsname (gentemp))
+    (define-gensyms argsname)
     `(lambda (. ,argsname) (apply ,@expr ,argsname))
 )
 (define (complement pred) (lambda (. args) (not (apply pred args))))
