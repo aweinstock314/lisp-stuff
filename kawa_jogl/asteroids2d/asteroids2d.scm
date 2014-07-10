@@ -130,7 +130,8 @@
 
 (define-constant +background-intensity+ .5)
 
-(define-constant background (calc-poly (/ tau 8) (constantly (* 2 +logical-width+)) 4
+
+(define-constant background (calc-poly (/ tau 8) (constantly (sqrt (* 2 (square +logical-width+)))) 4
     (lambda (i) (case i
         ((0) (values +background-intensity+ +background-intensity+ 0))
         ((1) (values +background-intensity+ 0 0))
