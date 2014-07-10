@@ -39,12 +39,15 @@
 (define-macro (returning let-pair . body) `(let (,let-pair) ,@body ,(car let-pair)))
 
 ; the first way has multiple-evaluation problems, but works fine for simple cases
-; the second way (commented), should be the right way, but generates bytecode that gives verify errors unless extra annotations are done at the call site
+; the second way (commented), should be the right way, but generates bytecode that sometimes gives verify errors (revision 7952 fixed a simplified version of this error, which turned out to have been oversimplified)
 (define-macro (inc! var delta)
     `(set! ,var (+ ,var ,delta))
     ;(let ((loc (gentemp))) `(let ((,loc (location ,var))) (set! (,loc) (+ (,loc) ,delta))))
 )
-(define-macro (inplace! fn var) `(set! ,var (,fn ,var)))
+(define-macro (inplace! fn var)
+    `(set! ,var (,fn ,var))
+    ;(let ((loc (gentemp))) `(let ((,loc (location ,var))) (set! (,loc) (,fn (,loc)))))
+)
 
 (define-macro (java-iterate iterable-expr varname . body)
     (define real-varname (if (list? varname) (car varname) varname))

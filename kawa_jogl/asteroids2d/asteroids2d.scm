@@ -41,9 +41,9 @@
 (define *active-shots*::ArrayList[shot] (ArrayList))
 
 (define-simple-class ship (drawer)
-    (x 0) (y 0)
-    (rot (/ tau 4))
-    (velocity 0)
+    (x::double 0) (y::double 0)
+    (rot::double (/ tau 4))
+    (velocity::double 0)
     (size .1)
     (color '(1 .5 0))
     (shooting-cooldown 0) ; in frames for now, probably should make more robust by handling milliseconds
@@ -72,7 +72,7 @@
 (define-constant +max-asteroid-ivel+ .05)
 
 (define-simple-class asteroid (drawer)
-    (x) (y) (rot) (velocity) (size) (color) (verts)
+    (x::double) (y::double) (rot::double) (velocity::double) (size) (color) (verts)
     ((*init*)
         (set! x (random-range (- +logical-width+) +logical-width+))
         (set! y (random-range (- +logical-height+) +logical-height+))
