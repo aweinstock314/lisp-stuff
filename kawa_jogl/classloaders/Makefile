@@ -13,8 +13,5 @@ RunWithClassloader.class: RunWithClassloader.java
 RunWithRecursiveJar.class: RecursiveJarUtil.class RunWithRecursiveJar.java
 	javac RunWithRecursiveJar.java
 
-runnable-jogl-kawa-bundle.jar: RecursiveJarUtil.class RunWithRecursiveJar.class runnable-bundle-manifest.mf jogl-kawa-bundle.jar
-	jar cfm runnable-jogl-kawa-bundle.jar runnable-bundle-manifest.mf jogl-kawa-bundle.jar RecursiveJarUtil.class RunWithRecursiveJar.class RunWithRecursiveJar\$$1.class
-
 clean:
 	rm *.class
