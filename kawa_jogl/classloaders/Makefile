@@ -1,5 +1,5 @@
 .PHONY: all clean
-all: RecursiveJarClassloader.class RecursiveJarUtil.class RunWithClassloader.class RunWithRecursiveJar.class runnable-jogl-kawa-bundle.jar
+all: RecursiveJarClassloader.class RecursiveJarUtil.class RunWithClassloader.class RunWithRecursiveJar.class
 
 RecursiveJarClassloader.class: RecursiveJarUtil.class RecursiveJarClassloader.java
 	javac RecursiveJarClassloader.java

@@ -38,6 +38,6 @@ public class RunWithRecursiveJar
         asynchStreamCopy(System.in,p.getOutputStream());
         asynchStreamCopy(p.getInputStream(),System.out);
         asynchStreamCopy(p.getErrorStream(),System.err);
-        p.waitFor();
+        System.exit(p.waitFor());
     }
 }
