@@ -17,7 +17,7 @@
 (define-constant +shot-speed+ .1)
 (define-constant +shot-size+ .01)
 (define-constant +shot-duration+ 45)
-(define-constant +shot-verts+ (calc-poly 0 (constantly +shot-size+) 10 (constantly (apply values +shot-color+))))
+(define-constant +shot-verts+ (append-polygon-to-global-buffer (calc-poly 0 (constantly +shot-size+) 10 (constantly (apply values +shot-color+)))))
 
 (define-simple-class shot (drawer)
     (x::double 0) (y::double 0)
@@ -55,7 +55,7 @@
     (shooting-cooldown::int 0) ; in frames for now, probably should make more robust by handling milliseconds
     ((*init*) (recalcVerts!) (set! rot (/ tau 4)))
     (verts)
-    ((recalcVerts!) (set! verts (calc-poly 0 (lambda (i) (if (= i 0) (* 2 size) size)) 3 (constantly (apply values color))))) ; isosceles triangle
+    ((recalcVerts!) (set! verts (append-polygon-to-global-buffer (calc-poly 0 (lambda (i) (if (= i 0) (* 2 size) size)) 3 (constantly (apply values color)))))) ; isosceles triangle
     ((rotate delta::double) (inc! rot delta))
     ((getVerts) verts)
     ((updatePosition!)
@@ -86,7 +86,7 @@
         (set! velocity (random-range +min-asteroid-ivel+ +max-asteroid-ivel+))
         (set! size (random-range +min-asteroid-size+ +max-asteroid-size+))
         (set! color (list (random-range .25 .65) 0 0))
-        (set! verts (calc-poly (random tau) (constantly size) (random-range 3 9) (constantly (apply values color))))
+        (set! verts (append-polygon-to-global-buffer (calc-poly (random tau) (constantly size) (random-range 3 9) (constantly (apply values color)))))
     )
     ((draw gl2) (drawPolygon gl2 x y rot verts))
     ((updatePosition!)
@@ -133,14 +133,15 @@
 (define-constant +background-intensity+ .5)
 
 
-(define-constant background (calc-poly (/ tau 8) (constantly (sqrt (* 2 (square +logical-width+)))) 4
+(define-constant background (append-polygon-to-global-buffer (calc-poly
+    (/ tau 8) (constantly (sqrt (* 2 (square +logical-width+)))) 4
     (lambda (i) (case i
         ((0) (values +background-intensity+ +background-intensity+ 0))
         ((1) (values +background-intensity+ 0 0))
         ((2) (values 0 +background-intensity+ +background-intensity+))
         ((3) (values 0 +background-intensity+ 0))
     ))
-))
+)))
 
 (define (draw-background gl2::GL2)
     (drawPolygon gl2 0 0 0 background)
