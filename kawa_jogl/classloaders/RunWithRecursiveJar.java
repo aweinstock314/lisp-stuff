@@ -18,6 +18,7 @@ public class RunWithRecursiveJar
                         os.write(rc);
                         os.flush();
                     }
+                    os.close();
                 }
                 catch(IOException ioe) {}
             }
@@ -26,18 +27,28 @@ public class RunWithRecursiveJar
         t.start();
     }
 
-    public static void main(String[] args) throws Throwable
+    public static int invokeWithRedirection(ArrayList<String> args) throws IOException, InterruptedException
     {
-        String expandedCP = RecursiveJarUtil.getRecursivelyExpandedClasspath();
-        ArrayList<String> newargs = new ArrayList<String>();
-        newargs.add("java");
-        newargs.add("-cp");
-        newargs.add(expandedCP);
-        for(String arg : args) { newargs.add(arg); }
-        Process p = Runtime.getRuntime().exec(newargs.toArray(new String[0]));
+        Process p = Runtime.getRuntime().exec(args.toArray(new String[0]));
         asynchStreamCopy(System.in,p.getOutputStream());
         asynchStreamCopy(p.getInputStream(),System.out);
         asynchStreamCopy(p.getErrorStream(),System.err);
-        System.exit(p.waitFor());
+        return p.waitFor();
+    }
+
+    public static ArrayList<String> argsForJavaWithExtendedClasspath(String[] classnameAndArgs) throws IOException
+    {
+        String expandedCP = RecursiveJarUtil.getRecursivelyExpandedClasspath();
+        ArrayList<String> args = new ArrayList<String>();
+        args.add("java");
+        args.add("-cp");
+        args.add(expandedCP);
+        for(String arg : classnameAndArgs) { args.add(arg); }
+        return args;
+    }
+
+    public static void main(String[] args) throws Throwable
+    {
+        System.exit(invokeWithRedirection(argsForJavaWithExtendedClasspath(args)));
     }
 }
