@@ -5,7 +5,8 @@ import java.util.ArrayList;
 
 public class RunWithRecursiveJar
 {
-    public static void asynchStreamCopy(final InputStream is, final OutputStream os)
+    public static void asynchStreamCopy(final InputStream is, final OutputStream os) { asynchStreamCopy(is,os,0x1000); }
+    public static void asynchStreamCopy(final InputStream is, final OutputStream os, final int BUF_SIZE)
     {
         Thread t = new Thread(new Runnable(){
             @Override public void run()
@@ -13,9 +14,10 @@ public class RunWithRecursiveJar
                 try
                 {
                     int rc;
-                    while((rc = is.read()) != -1)
+                    byte[] buf = new byte[BUF_SIZE];
+                    while((rc = is.read(buf,0,BUF_SIZE)) != -1)
                     {
-                        os.write(rc);
+                        os.write(buf,0,rc);
                         os.flush();
                     }
                     os.close();
