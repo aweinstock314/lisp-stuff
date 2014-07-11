@@ -9,6 +9,7 @@ import java.util.jar.JarInputStream;
 
 public class RecursiveJarUtil
 {
+    public static boolean MAKE_TEMPORARIES = true;
     private static final int BUF_SIZE = 0x1000;
     private static int counter = 0;
     public static String[] getClasspathEntries()
@@ -20,7 +21,7 @@ public class RecursiveJarUtil
     {
         File tmpdir = new File("temp/",String.format("RJCRdir%d-%d", ++counter, System.currentTimeMillis()));
         if(!tmpdir.mkdirs())throw new IOException("Couldn't create temp directory "+tmpdir.getAbsolutePath());
-        tmpdir.deleteOnExit();
+        if(MAKE_TEMPORARIES)tmpdir.deleteOnExit();
         return tmpdir;
     }
 
@@ -45,7 +46,7 @@ public class RecursiveJarUtil
             {
                 File outputJar = new File(dir,je.getName());
                 jars.add(outputJar);
-                outputJar.deleteOnExit();
+                if(MAKE_TEMPORARIES)outputJar.deleteOnExit();
                 FileOutputStream fos = new FileOutputStream(outputJar);
                 while((rc = jis.read(buf,0,BUF_SIZE)) != -1) { fos.write(buf,0,rc); }
                 fos.close();

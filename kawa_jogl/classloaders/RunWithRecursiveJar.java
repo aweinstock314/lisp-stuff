@@ -49,8 +49,16 @@ public class RunWithRecursiveJar
         return args;
     }
 
+    public static void dumpRecursiveJars() throws IOException
+    {
+        RecursiveJarUtil.MAKE_TEMPORARIES = false;
+        System.out.printf("export CLASSPATH=%s",RecursiveJarUtil.getRecursivelyExpandedClasspath());
+    }
+
     public static void main(String[] args) throws Throwable
     {
-        System.exit(invokeWithRedirection(argsForJavaWithExtendedClasspath(args)));
+        // dump option intended to be invoked as "$(java RunWithRecuriveJar --dump)" from bash (with recursive jars on the classpath), for efficiency during development
+        if(args.length > 0 && args[0].equals("--dump")) { dumpRecursiveJars(); }
+        else { System.exit(invokeWithRedirection(argsForJavaWithExtendedClasspath(args))); }
     }
 }

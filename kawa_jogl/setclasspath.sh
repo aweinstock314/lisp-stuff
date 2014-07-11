@@ -32,3 +32,4 @@ function add_to_classpath
 fi
 export CLASSPATH=.
 add_to_classpath "${SCRIPTPATH}/classloaders/runnable-jogl-kawa7956-bundle.jar"
+$(java RunWithRecursiveJar --dump)
