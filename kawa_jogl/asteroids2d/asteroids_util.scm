@@ -39,6 +39,10 @@
 (define-macro (returning let-pair . body) `(let (,let-pair) ,@body ,(car let-pair)))
 (define-macro (set!* vals exprs) `(begin ,@(map (lambda (val expr) `(set! ,val ,expr)) vals exprs)))
 (define-macro (define-gensyms . names) `(begin ,@(map (lambda (name) `(define ,name (gentemp))) names)))
+(define-macro (set-values! vars expr)
+    (define tmps (map (thunk (gentemp)) vars))
+    `(mvbind ,tmps ,expr ,@(map (lambda (var tmp) `(set! ,var ,tmp)) vars tmps))
+)
 
 ; the first way has multiple-evaluation problems, but works fine for simple cases
 ; the second way (commented), should be the right way, but generates bytecode that sometimes gives verify errors (revision 7952 fixed a simplified version of this error, which turned out to have been oversimplified)
@@ -157,6 +161,11 @@
     )
     ((toString)::String (String:format "p(%f, %f)" m t))
 )
+
+(define (apply-polar-movement x y mag rot) (values
+    (+ x (* mag (cos rot)))
+    (+ y (* mag (sin rot)))
+))
 
 (define (cart->polar v::vertex) (polar-vertex (sqrt (+ (square v:x) (square v:y))) (atan2 v:y v:x)))
 (define (polar->cart p::polar-vertex) (vertex (* p:m (cos p:t)) (* p:m (sin p:t))))
