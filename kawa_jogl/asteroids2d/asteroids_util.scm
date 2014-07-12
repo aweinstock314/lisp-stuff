@@ -318,12 +318,12 @@
     )
 )
 
-(define (drawPolygon gl2::GL2 x y rot verts)
+(define (drawPolygon gl2::GL2 x y rot vertidx)
     (gl2:glMatrixMode gl2:GL_MODELVIEW)
     (gl2:glPushMatrix)
     (gl2:glTranslated x y 0)
     (gl2:glRotated (rad->deg rot) 0 0 1)
-    (gl2:glDrawArrays gl2:GL_POLYGON (car verts) (cdr verts))
+    (gl2:glDrawArrays gl2:GL_POLYGON (car vertidx) (cdr vertidx))
     (gl2:glPopMatrix)
 )
 

@@ -17,7 +17,7 @@
 (define-constant +shot-speed+ .1)
 (define-constant +shot-size+ .01)
 (define-constant +shot-duration+ 45)
-(define-constant +shot-verts+ (append-polygon-to-global-buffer (calc-poly 0 (constantly +shot-size+) 10 (constantly (apply values +shot-color+)))))
+(define-constant +shot-vertidx+ (append-polygon-to-global-buffer (calc-poly 0 (constantly +shot-size+) 10 (constantly (apply values +shot-color+)))))
 
 (define-simple-class shot (drawer)
     (x::double 0) (y::double 0)
@@ -37,7 +37,7 @@
         (inplace! (wrap (- +logical-height+) +logical-height+) y)
     )
     ((expired?) (< frames-until-decay 0))
-    ((draw gl2) (drawPolygon gl2 x y rot +shot-verts+))
+    ((draw gl2) (drawPolygon gl2 x y rot +shot-vertidx+))
 )
 
 (define-constant +frames-between-shots+ 5)
@@ -53,17 +53,17 @@
     (color '(1 .5 0))
     (shooting-cooldown::int 0) ; in frames for now, probably should make more robust by handling milliseconds
     ((*init*) (recalcVerts!) (set! rot (/ tau 4)))
-    (verts)
-    ((recalcVerts!) (set! verts (append-polygon-to-global-buffer (calc-poly 0 (lambda (i) (if (= i 0) (* 2 size) size)) 3 (constantly (apply values color)))))) ; isosceles triangle
+    (vertidx)
+    ((recalcVerts!) (set! vertidx (append-polygon-to-global-buffer (calc-poly 0 (lambda (i) (if (= i 0) (* 2 size) size)) 3 (constantly (apply values color)))))) ; isosceles triangle
     ((rotate delta::double) (inc! rot delta))
-    ((getVerts) verts)
+    ((getVertidx) vertidx)
     ((updatePosition!)
         (if (> shooting-cooldown 0) (inc! shooting-cooldown -1))
         (set-values! (x y) (apply-polar-movement x y velocity rot))
         (inplace! (wrap (- +logical-width+) +logical-width+) x)
         (inplace! (wrap (- +logical-height+) +logical-height+) y)
     )
-    ((draw gl2) (drawPolygon gl2 x y rot (getVerts)))
+    ((draw gl2) (drawPolygon gl2 x y rot vertidx))
     ((shoot)
         (*active-shots*:add (shot x y rot velocity))
         (set! shooting-cooldown +frames-between-shots+)
@@ -82,10 +82,10 @@
     (velocity::double (random-range +min-asteroid-ivel+ +max-asteroid-ivel+))
     (size (random-range +min-asteroid-size+ +max-asteroid-size+))
     (color (list (random-range .25 .65) 0 0))
-    (verts #!null)
+    (vertidx #!null)
     (children::ArrayList[asteroid] #!null)
     ((constructor-helper poly::polygon) access: 'private
-        (set! verts (append-polygon-to-global-buffer poly))
+        (set! vertidx (append-polygon-to-global-buffer poly))
         (set! children (ArrayList-map asteroid (divide-poly poly)))
     )
     ((*init*)
@@ -93,7 +93,7 @@
     )
     ((*init* poly::polygon) (constructor-helper poly))
 
-    ((draw gl2) (drawPolygon gl2 x y rot verts))
+    ((draw gl2) (drawPolygon gl2 x y rot vertidx))
     ((updatePosition!)
         (set-values! (x y) (apply-polar-movement x y velocity rot))
         (inplace! (wrap (- +logical-width+) +logical-width+) x)
