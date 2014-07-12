@@ -191,6 +191,43 @@
     ))
 )
 
+(define (ensure-positive-angle t)
+    (if (< t 0)
+        (ensure-positive-angle (+ t tau))
+        t
+    )
+)
+
+; check if point (px, py) is on the "inside" of a line (calc-poly draws lines counter-clockwise)
+(define (inside-line? px py x1 y1 x2 y2)
+    (let* ((theta1 (ensure-positive-angle (atan2 (- y2 y1) (- x2 x1))))
+           (theta2 (ensure-positive-angle (atan2 (- py y1) (- px x1)))))
+        (> (- theta2 theta1) 0)
+    )
+)
+
+(define (inside-poly? buf::FloatBuffer vertidx px py)
+    (let* ((offset (car vertidx))
+           (numverts (cdr vertidx))
+          )
+        (buf:position offset)
+        (let loop ((oldx (buf:get)) (oldy (buf:get)) (i 0))
+            (buf:position (+ (buf:position) 4)) ;skip z, r, g, b, this may need to be modified to include z during the transition to 3d
+            (if (< i numverts)
+                (begin
+                    (define newx (buf:get))
+                    (define newy (buf:get))
+                    (if (inside-line? px py oldx oldy newx newy)
+                        (loop newx newy (+ i 1))
+                        #f
+                    )
+                )
+                #f
+            )
+        )
+    )
+)
+
 (define (ArrayList-map fn . arraylists)
     (returning (rv ::ArrayList (ArrayList))
         (define endidx (fold min Integer:MAX_VALUE (map (lambda (x::ArrayList) (x:size)) arraylists)))
