@@ -237,6 +237,12 @@
     )
 )
 
+(define (ArrayList-foldl fn al::ArrayList initial)
+    (returning (acc initial) (pascal-for (i 0 (al:size) 1)
+        (set! acc (fn acc (al:get i)))
+    ))
+)
+
 (define-macro (with-overlapping-slices slicename source groupsize overlap . body)
     (define-gensyms loop idx backamt)
     `(let ((,backamt (if (>= ,overlap ,groupsize) (- ,groupsize 1) ,overlap)))
@@ -355,8 +361,9 @@
     )
 )
 
+(define-alias PMVMatrix com.jogamp.opengl.util.PMVMatrix)
 (define (getPMVMatrix gl2::GL2)
-    (returning (mtrx (com.jogamp.opengl.util.PMVMatrix))
+    (returning (mtrx (PMVMatrix))
         (define modl (float[] length: 16))
         (define proj (float[] length: 16))
         (gl2:glGetFloatv gl2:GL_MODELVIEW_MATRIX modl 0)
