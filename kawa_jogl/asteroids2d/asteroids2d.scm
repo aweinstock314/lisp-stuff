@@ -158,6 +158,8 @@
     (drawPolygon gl2 0 0 0 background)
 )
 
+(define *main-window-matrix* #!null)
+
 (define (render gl2::GL2)
     (event-loop) ; might be a good idea to move this out of render later
     (gl2:glClear gl2:GL_COLOR_BUFFER_BIT)
@@ -191,6 +193,7 @@
     ;(set-projection gl2 (* 2 +logical-width+) (* 2 +logical-height+))
     (gl2:glViewport 0 0 640 480)
     (draw-frame gl2 0 0 0 0)
+    (if (equal? *main-window-matrix* #!null) (set! *main-window-matrix* (getPMVMatrix gl2)))
     (set-projection gl2 +viewport-width+ +viewport-height+)
     (gl2:glViewport 0 0 320 240)
     ; display 4 copies (in positions based on the quadrant of the ship) to ensure that objects on the wrapped sides appear properly
@@ -249,6 +252,20 @@
         (*currently-held-keys*:remove (ev:getKeyCode))
     )
     ((keyTyped ev) #!void)
+))
+(glcanv:addMouseListener (object (java.awt.event.MouseListener)
+    ((mouseClicked ev)
+        (unless (equal? *main-window-matrix* #!null)
+            (define output (float[] length: 3))
+            (*main-window-matrix*:gluUnProject (ev:getX) (ev:getY) 0 (int[] 0 0 640 480) 0 output 0)
+            (printf "mouse clicked at (%s, %s) window coords (%s, %s) object coords\n" (ev:getX) (ev:getY) (output 0) (output 1))
+        )
+    )
+    ; consider making a macro that generates these stubs for all methods of an interface, except for ones written
+    ((mouseEntered ev) #!void)
+    ((mouseExited ev) #!void)
+    ((mousePressed ev) #!void)
+    ((mouseReleased ev) #!void)
 ))
 (jf:add glcanv)
 (jf:setVisible #t)
