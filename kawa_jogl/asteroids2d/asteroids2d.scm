@@ -112,6 +112,17 @@
 
 (define *active-asteroids*::ArrayList[asteroid] (ArrayList))
 (pascal-for (i 0 10 1) (*active-asteroids*:add (asteroid)))
+;; debugging stuff for 'inside-poly?
+;(define (colorfun i) (case i
+;    ((0) (values 1 0 0))
+;    ((1) (values 0 1 0))
+;    ((2) (values 0 0 1))
+;    ((3) (values 1 0 1))
+;))
+;(*active-asteroids*:add (asteroid (calc-poly (/ tau 4) (constantly .5) 4 colorfun)))
+;(set! (*active-asteroids* 0):x 0)
+;(set! (*active-asteroids* 0):y 0)
+;(set! (*active-asteroids* 0):rot 0)
 
 (define (closest-asteroid-to-point x y)::asteroid
     (define (sqr-dist a::asteroid)
@@ -125,6 +136,20 @@
     (car (ArrayList-foldl (lambda (acc elem) (if (< (cdr acc) (cdr elem)) acc elem))
             (ArrayList-map sqr-dist *active-asteroids*)
             (cons #!null Integer:MAX_VALUE)
+        )
+    )
+)
+
+(define (split-if-closest-asteroid-overlaps-point! x y)
+    (define a (closest-asteroid-to-point x y))
+    (if (equal? a #!null) #f
+        (if (inside-poly? *polygons-buffer* a:vertidx a:x a:y a:rot x y)
+            (begin
+                (a:split)
+                (*active-asteroids*:remove a)
+                #t
+            )
+            #f
         )
     )
 )
@@ -151,7 +176,9 @@
     (player-ship:updatePosition!)
     (java-iterate *active-shots* (s shot iter)
         (s:updatePosition!)
-        (if (s:expired?) (iter:remove))
+        (if (or (split-if-closest-asteroid-overlaps-point! s:x s:y) (s:expired?))
+            (iter:remove)
+        )
     )
     (java-iterate *active-asteroids* (a asteroid)
         (a:updatePosition!)
@@ -256,6 +283,7 @@
     ((dispose drawable) #!void)
     ((reshape drawable x y w h) #!void)
 ))
+
 (glcanv:addKeyListener (object (java.awt.event.KeyListener)
     ((keyPressed ev)
         ; split a random asteroid, for testing purposes, when 's' is pressed
@@ -278,13 +306,7 @@
             ; the subtraction is because AWT has the origin at the upper-left, OpenGL has it at bottom-left
             (*main-window-matrix*:gluUnProject (ev:getX) (- +screen-height+ (ev:getY)) 0 (int[] 0 0 +screen-width+ +screen-height+) 0 output 0)
             (printf "mouse clicked at (%s, %s) window coords (%s, %s) object coords\n" (ev:getX) (ev:getY) (output 0) (output 1))
-            (define a (closest-asteroid-to-point (output 0) (output 1)))
-            (unless (equal? a #!null)
-                (when (inside-poly? *polygons-buffer* a:vertidx a:x a:y a:rot (output 0) (output 1))
-                    (a:split)
-                    (*active-asteroids*:remove a)
-                )
-            )
+            ;(split-if-closest-asteroid-overlaps-point! (output 0) (output 1))
         )
     )
     ; consider making a macro that generates these stubs for all methods of an interface, except for ones written
