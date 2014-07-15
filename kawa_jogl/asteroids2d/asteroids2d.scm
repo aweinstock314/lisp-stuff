@@ -336,3 +336,4 @@
 (jf:setVisible #t)
 (define anim (com.jogamp.opengl.util.FPSAnimator glcanv 30))
 (anim:start)
+(glcanv:requestFocus)
