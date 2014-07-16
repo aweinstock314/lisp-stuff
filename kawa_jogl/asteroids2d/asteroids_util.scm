@@ -43,6 +43,12 @@
     (define tmps (map (thunk (gentemp)) vars))
     `(receive ,tmps ,expr ,@(map (lambda (var tmp) `(set! ,var ,tmp)) vars tmps))
 )
+(define-macro (define-values vars expr)
+    `(begin
+        ,@(map (lambda (var) `(define ,var #!null)) vars)
+        (set-values! ,vars ,expr)
+    )
+)
 
 ; the first way has multiple-evaluation problems, but works fine for simple cases
 ; the second way (commented), should be the right way, but generates bytecode that sometimes gives verify errors (revision 7952 fixed a simplified version of this error, which turned out to have been oversimplified)

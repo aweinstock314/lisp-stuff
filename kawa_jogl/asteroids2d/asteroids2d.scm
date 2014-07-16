@@ -13,6 +13,9 @@
     ((draw gl2::GL2) #!abstract)
 )
 
+(define *scorelabel* (javax.swing.JLabel "Hello, world!"))
+(define *score* 0)
+
 (define-constant +shot-color+ '(1 1 1))
 (define-constant +shot-speed+ .1)
 (define-constant +shot-size+ .01)
@@ -111,6 +114,7 @@
     )
     ((split r v) ; takes rotation and velocity of incoming shot, for momentum calculation
         (printf "splitting asteroid at (%f, %f), %d children\n" x y (children:size))
+        (inc! *score* 1)
         (java-iterate children c
             (set!* (c:x c:y) (x y))
             ; maybe add some factor based on child centers, instead of the random factor?
@@ -227,6 +231,9 @@
         ;(exit 0)
     )
     ;(printf "pos: %s, %s\n" player-ship:x player-ship:y)
+    (*scorelabel*:setText (String:format "Score: %s" *score*))
+    (*scorelabel*:validate)
+    (*scorelabel*:repaint)
 )
 
 (define-constant +background-intensity+ .5)
@@ -439,7 +446,17 @@
         ;(printf "(%s, %s)\n" +viewport-width+ +viewport-height+)
     )
 ))
+;((jf:getContentPane):setLayout (javax.swing.OverlayLayout (jf:getContentPane)))
+;;(define layers (javax.swing.JLayeredPane))
+;;(layers:setPreferredSize (java.awt.Dimension +window-width+ +window-height+))
+;;(jf:add layers)
+(jf:setLayout #!null)
+(*scorelabel*:setPreferredSize (java.awt.Dimension 128 32))
+(jf:add *scorelabel*)
+(*scorelabel*:setBounds 0 0 128 32)
 (jf:add glcanv)
+(glcanv:setBounds 0 0 640 480)
+;;(layers:setVisible #t)
 (jf:setVisible #t)
 (define anim (com.jogamp.opengl.util.FPSAnimator glcanv 30))
 (anim:start)
