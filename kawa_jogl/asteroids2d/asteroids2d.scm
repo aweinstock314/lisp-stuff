@@ -86,9 +86,17 @@
     (color (list (random-range .25 .65) 0 0))
     (vertidx #!null)
     (children::ArrayList[asteroid] #!null)
+    (dx::double 0) (dy::double 0) ; deltas from center of generated polygon, for children
     ((constructor-helper poly::polygon) access: 'private
         (set! vertidx (append-polygon-to-global-buffer poly))
         (set! children (ArrayList-map asteroid (divide-poly poly)))
+        (receive (xs ys) (ArrayList-foldl
+                (lambda (acc v::vertex) (receive (xs ys) acc (values (cons v:x xs) (cons v:y ys))))
+                poly:verts
+                (values '() '())
+            )
+            (set!* (dx dy) ((apply average xs) (apply average ys)))
+        )
     )
     ((*init*)
         (constructor-helper (calc-poly (random tau) (constantly size) (random-range 3 9) (constantly (apply values color))))
@@ -122,8 +130,8 @@
 
 (define (closest-asteroid-to-point x y)::asteroid
     (define (sqr-dist a::asteroid)
-        (define dx (- a:x x))
-        (define dy (- a:y y))
+        (define dx (- (- a:x a:dx) x))
+        (define dy (- (- a:y a:dy) y))
         (define sd (+ (* dx dx) (* dy dy))) ; workaround for "java.lang.Double cannot be cast to gnu.math.Quantity"
         ;(printf "squaredist between (%s, %s) and (%s, %s) is %s\n" x y a:x a:y sd)
         (cons a sd)
@@ -133,6 +141,22 @@
             (ArrayList-map sqr-dist *active-asteroids*)
             (cons #!null Integer:MAX_VALUE)
         )
+    )
+)
+
+(define (asteroids-near-point x y thresh)
+    (define (sqr-dist a::asteroid)
+        (define dx (- a:x x))
+        (define dy (- a:y y))
+        (define sd (+ (* dx dx) (* dy dy))) ; workaround for "java.lang.Double cannot be cast to gnu.math.Quantity"
+        ;(printf "squaredist between (%s, %s) and (%s, %s) is %s\n" x y a:x a:y sd)
+        (cons a sd)
+    )
+    (define sqrthresh (* thresh thresh))
+    ; this type of transform is probably rather inefficient without deforestation and inlining, revise later
+    (ArrayList-foldl (lambda (acc elem) (if (< (cdr elem) sqrthresh) (cons (car elem) acc) acc))
+        (ArrayList-map sqr-dist *active-asteroids*)
+        '()
     )
 )
 
@@ -148,6 +172,19 @@
             #f
         )
     )
+)
+
+(define (split-if-nearby-asteroid-overlaps-point! x y rot vel)
+    (call-with-current-continuation (lambda (break)
+        (for-each (lambda (a::asteroid)
+            (when (inside-poly? *polygons-buffer* a:vertidx a:x a:y a:rot x y)
+                (a:split rot vel)
+                (*active-asteroids*:remove a)
+                (break #t)
+            )
+        ) (asteroids-near-point x y .5))
+        (break #f)
+    ))
 )
 
 (define player-ship (ship))
@@ -176,7 +213,7 @@
     (player-ship:updatePosition!)
     (java-iterate *active-shots* (s shot iter)
         (s:updatePosition!)
-        (if (or (split-if-closest-asteroid-overlaps-point! s:x s:y s:rot s:velocity) (s:expired?))
+        (if (or (split-if-nearby-asteroid-overlaps-point! s:x s:y s:rot s:velocity) (s:expired?))
             (iter:remove)
         )
     )
@@ -292,17 +329,19 @@
         (receive (px py) *recent-mouse-obj-coords*
             ;(printf "recent mouse coords (%s, %s)\n" px py)
             (define a (closest-asteroid-to-point px py))
-            ;(printf "asteroid loc (%s, %s)\n" a:x a:y)
-            (drawPolygon gl2 0 0 0 a:vertidx)
-            (define xy (untranslate/rotate a:x a:y a:rot px py))
-            ;(printf "translated pt (%s, %s)\n" (xy 0) (xy 1))
-            (drawPolygon gl2 (xy 0) (xy 1) 0 black-dot)
-            (define (getter vertidx offset)
-                (*polygons-buffer*:position (* (car vertidx) 6))
-                (*polygons-buffer*:position (+ (*polygons-buffer*:position) offset))
-                (*polygons-buffer*:get)
+            (unless (equal? a #!null)
+                ;(printf "asteroid loc (%s, %s)\n" a:x a:y)
+                (drawPolygon gl2 0 0 0 a:vertidx)
+                (define xy (untranslate/rotate a:x a:y a:rot px py))
+                ;(printf "translated pt (%s, %s)\n" (xy 0) (xy 1))
+                (drawPolygon gl2 (xy 0) (xy 1) 0 black-dot)
+                (define (getter vertidx offset)
+                    (*polygons-buffer*:position (* (car vertidx) 6))
+                    (*polygons-buffer*:position (+ (*polygons-buffer*:position) offset))
+                    (*polygons-buffer*:get)
+                )
+                (draw-dotted-line gl2 blue-dot 0 0 (getter a:vertidx 0) (getter a:vertidx 1))
             )
-            (draw-dotted-line gl2 blue-dot 0 0 (getter a:vertidx 0) (getter a:vertidx 1))
         )
     )
     (if *show-extra-debugging-views*
