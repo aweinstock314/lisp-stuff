@@ -35,14 +35,13 @@
 (define-constant newDirectFloatBuffer com.jogamp.common.nio.Buffers:newDirectFloatBuffer)
 
 (define-macro (thunk . body) `(lambda (. ,(gentemp)) ,@body))
-(define-macro (mvbind vars expr . body) `(call-with-values (thunk ,expr) (lambda ,vars ,@body)))
 (define-macro (mvlist expr) `(call-with-values (thunk ,expr) list))
 (define-macro (returning let-pair . body) `(let (,let-pair) ,@body ,(car let-pair)))
 (define-macro (set!* vals exprs) `(begin ,@(map (lambda (val expr) `(set! ,val ,expr)) vals exprs)))
 (define-macro (define-gensyms . names) `(begin ,@(map (lambda (name) `(define ,name (gentemp))) names)))
 (define-macro (set-values! vars expr)
     (define tmps (map (thunk (gentemp)) vars))
-    `(mvbind ,tmps ,expr ,@(map (lambda (var tmp) `(set! ,var ,tmp)) vars tmps))
+    `(receive ,tmps ,expr ,@(map (lambda (var tmp) `(set! ,var ,tmp)) vars tmps))
 )
 
 ; the first way has multiple-evaluation problems, but works fine for simple cases
