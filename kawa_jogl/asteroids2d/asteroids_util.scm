@@ -135,6 +135,7 @@
 (define tau (* 8 (atan 1)))
 (define atan2 java.lang.Math:atan2)
 (define (rad->deg r) (/ (* r 360) tau))
+(define (average . nums) (/ (fold + 0 nums) (length nums)))
 (define (random x)::float (* x (java.lang.Math:random)))
 (define (random-range lo hi)::float (+ lo (* (- hi lo) (java.lang.Math:random))))
 
@@ -155,24 +156,25 @@
     ((*init* vertices::ArrayList[vertex]) (set! verts vertices))
 )
 
-(define-simple-class polar-vertex ()
-    (m::double 0) (t::double 0)
-    ((*init*) #!void)
-    ((*init* im::double it::double)
-        (set! m im)
-        (set! t it)
-    )
-    ((toString)::String (String:format "p(%f, %f)" m t))
-)
+;(define-simple-class polar-vertex ()
+;    (m::double 0) (t::double 0)
+;    ((*init*) #!void)
+;    ((*init* im::double it::double)
+;        (set! m im)
+;        (set! t it)
+;    )
+;    ((toString)::String (String:format "p(%f, %f)" m t))
+;)
 
 (define (apply-polar-movement x y mag rot) (values
     (+ x (* mag (cos rot)))
     (+ y (* mag (sin rot)))
 ))
 
-(define (cart->polar v::vertex) (polar-vertex (sqrt (+ (square v:x) (square v:y))) (atan2 v:y v:x)))
-(define (polar->cart p::polar-vertex) (vertex (* p:m (cos p:t)) (* p:m (sin p:t))))
-(define (cart+ v1::vertex v2::vertex) (vertex (+ v1:x v2:x) (+ v1:y v2:y)))
+(define (cart->polar v) (receive (x y) v (values (java.lang.Math:sqrt (+ (* x x) (* y y))) (atan2 y x))))
+(define (polar->cart p) (receive (m t) p (values (* m (cos t)) (* m (sin t)))))
+(define (cart+ v1 v2) (let-values (((x1 y1) v1) ((x2 y2) v2)) (values (+ x1 x2) (+ y1 y2))))
+(define (values-map f v) (gnu.mapping.Values:make (vector-map f (vector (gnu.mapping.Values:getValues v)))))
 
 ; returns a list of vertices of a "regular" polygon, with the first vertex at rot radians
 ; the radius parameter is a function to allow non-regular polygons such as isosceles triangles

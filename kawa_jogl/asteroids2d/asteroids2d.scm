@@ -16,6 +16,7 @@
 (define-constant +shot-color+ '(1 1 1))
 (define-constant +shot-speed+ .1)
 (define-constant +shot-size+ .01)
+(define-constant +shot-momentum-factor+ 5)
 (define-constant +shot-duration+ 45)
 (define-constant +shot-vertidx+ (append-polygon-to-global-buffer (calc-poly 0 (constantly +shot-size+) 10 (constantly (apply values +shot-color+)))))
 
@@ -100,10 +101,17 @@
         (inplace! (wrap (- +logical-width+) +logical-width+) x)
         (inplace! (wrap (- +logical-height+) +logical-height+) y)
     )
-    ((split)
+    ((split r v) ; takes rotation and velocity of incoming shot, for momentum calculation
         (printf "splitting asteroid at (%f, %f), %d children\n" x y (children:size))
         (java-iterate children c
             (set!* (c:x c:y) (x y))
+            ; maybe add some factor based on child centers, instead of the random factor?
+            (define randfactor (random-range (/ (- tau) 16) (/ tau 16)))
+            (define c1 (polar->cart (values (* v +shot-momentum-factor+ +shot-size+) r)))
+            (define c2 (polar->cart (values (* velocity size) rot)))
+            (receive (m t) (cart->polar (cart+ c1 c2))
+                (set!* (c:velocity c:rot) ((/ m size) (ensure-proper-angle (+ randfactor t))))
+            )
             (*active-asteroids*:add c)
         )
     )
@@ -111,17 +119,6 @@
 
 (define *active-asteroids*::ArrayList[asteroid] (ArrayList))
 (pascal-for (i 0 10 1) (*active-asteroids*:add (asteroid)))
-;; debugging stuff for 'inside-poly?
-;(define (colorfun i) (case i
-;    ((0) (values 1 0 0))
-;    ((1) (values 0 1 0))
-;    ((2) (values 0 0 1))
-;    ((3) (values 1 0 1))
-;))
-;(*active-asteroids*:add (asteroid (calc-poly (/ tau 4) (constantly .5) 4 colorfun)))
-;(set! (*active-asteroids* 0):x 0)
-;(set! (*active-asteroids* 0):y 0)
-;(set! (*active-asteroids* 0):rot 0)
 
 (define (closest-asteroid-to-point x y)::asteroid
     (define (sqr-dist a::asteroid)
@@ -139,12 +136,12 @@
     )
 )
 
-(define (split-if-closest-asteroid-overlaps-point! x y)
+(define (split-if-closest-asteroid-overlaps-point! x y rot vel)
     (define a (closest-asteroid-to-point x y))
     (if (equal? a #!null) #f
         (if (inside-poly? *polygons-buffer* a:vertidx a:x a:y a:rot x y)
             (begin
-                (a:split)
+                (a:split rot vel)
                 (*active-asteroids*:remove a)
                 #t
             )
@@ -179,7 +176,7 @@
     (player-ship:updatePosition!)
     (java-iterate *active-shots* (s shot iter)
         (s:updatePosition!)
-        (if (or (split-if-closest-asteroid-overlaps-point! s:x s:y) (s:expired?))
+        (if (or (split-if-closest-asteroid-overlaps-point! s:x s:y s:rot s:velocity) (s:expired?))
             (iter:remove)
         )
     )
@@ -188,7 +185,7 @@
     )
     (when (and (*active-asteroids*:isEmpty) (not displayed-victory-message))
         (printf "All asteroids have been cleared!\n")
-        (javax.swing.JOptionPane:showMessageDialog #!null "All asteroids have been cleared!")
+        ;(javax.swing.JOptionPane:showMessageDialog #!null "All asteroids have been cleared!")
         (set! displayed-victory-message #t)
         ;(exit 0)
     )
@@ -346,7 +343,7 @@
         ; split a random asteroid, for testing purposes, when 's' is pressed
         (when (equal? (ev:getKeyCode) KeyEvent:VK_S)
             (define a (*active-asteroids* (random (*active-asteroids*:size))))
-            (a:split)
+            (a:split 0 0)
             (*active-asteroids*:remove a)
         )
         (when (equal? (ev:getKeyCode) KeyEvent:VK_Q) (inc! +asteroid-speed-multiplier+ -0.1))
@@ -376,7 +373,7 @@
         (unless (equal? *whole-area-matrix* #!null)
             (receive (x y) (mousecoords->objcoords (ev:getX) (ev:getY))
                 (printf "mouse clicked at (%s, %s) window coords (%s, %s) object coords\n" (ev:getX) (ev:getY) x y)
-                (split-if-closest-asteroid-overlaps-point! x y)
+                (split-if-closest-asteroid-overlaps-point! x y 0 0)
             )
         )
     )
