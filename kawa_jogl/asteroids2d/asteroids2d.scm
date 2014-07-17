@@ -214,6 +214,7 @@
 (define glcanv (javax.media.opengl.awt.GLCanvas))
 
 (define *use-respawn-safety-box* #t)
+(define-constant +respawn-box-vertidx+ (append-polygon-to-global-buffer (calc-poly (/ tau 8) (constantly (sqrt 2)) 4 (constantly (values 0 .25 .25)))))
 (define push-outside-respawn-safety-box (push-outside -1 -1 2 2))
 
 (define *currently-held-keys* (java.util.HashSet))
@@ -312,6 +313,7 @@
         (gl2:glTranslated (- ox) (- oy) 0)
     )
     (define-constant (draw-foreground gl2)
+        (if *use-respawn-safety-box* (drawPolygon gl2 0 0 0 +respawn-box-vertidx+))
         (player-ship:draw gl2)
         (java-iterate *active-shots* (s shot) (s:draw gl2))
         (java-iterate *active-asteroids* (a asteroid) (a:draw gl2))
