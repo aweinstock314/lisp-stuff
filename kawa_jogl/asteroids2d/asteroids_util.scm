@@ -75,6 +75,13 @@
     )
 )
 
+(define-macro (while test . body)
+    (define-gensyms loop)
+    `(let ,loop ()
+        (when ,test ,@body (,loop))
+    )
+)
+
 (define-macro (pascal-for rng . body)
     (define var (car rng))
     (define-gensyms lo hi step)
@@ -180,6 +187,22 @@
 (define (polar->cart p) (receive (m t) p (values (* m (cos t)) (* m (sin t)))))
 (define (cart+ v1 v2) (let-values (((x1 y1) v1) ((x2 y2) v2)) (values (+ x1 x2) (+ y1 y2))))
 (define (values-map f v) (gnu.mapping.Values:make (vector-map f (vector (gnu.mapping.Values:getValues v)))))
+
+(define (push-outside x y w h)
+    (let* ( (cx (average x (+ x w)))
+            (cy (average y (+ y h)))
+            (hbound? (within? x (+ x w)))
+            (vbound? (within? y (+ y h)))
+            (epsilon .01)
+          )
+        (lambda (px py) (receive (m t) (cart->polar (values (- px cx) (- py cy)))
+            (do ((tx px (+ tx (* epsilon (cos t))))
+                 (ty py (+ ty (* epsilon (sin t)))))
+                ((not (and (hbound? tx) (vbound? ty))) (values tx ty))
+            )
+        ))
+    )
+)
 
 ; returns a list of vertices of a "regular" polygon, with the first vertex at rot radians
 ; the radius parameter is a function to allow non-regular polygons such as isosceles triangles
