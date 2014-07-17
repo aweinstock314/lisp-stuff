@@ -72,6 +72,9 @@
         (*active-shots*:add (shot x y rot velocity))
         (set! shooting-cooldown +frames-between-shots+)
     )
+    ((resetPosition&Momentum!)
+        (set!* (x y rot velocity) (0 0 (/ tau 4) 0))
+    )
 )
 
 (define-constant +min-asteroid-size+ .1)
@@ -192,6 +195,14 @@
 )
 
 (define player-ship (ship))
+(define *player-lives* 3)
+
+(define (player-death!)
+    (player-ship:resetPosition&Momentum!)
+    (set! *use-respawn-safety-box* #t)
+    (inc! *player-lives* -1)
+    (printf "Lives-remaining: %s\n" *player-lives*)
+)
 
 (define jf (javax.swing.JFrame))
 (define *show-extra-debugging-views* #f)
@@ -226,6 +237,9 @@
     )
     (java-iterate *active-asteroids* (a asteroid)
         (a:updatePosition!)
+        (if (inside-poly? *polygons-buffer* a:vertidx a:x a:y a:rot player-ship:x player-ship:y)
+            (player-death!)
+        )
         (if *use-respawn-safety-box* (set-values! (a:x a:y) (push-outside-respawn-safety-box a:x a:y)))
     )
     (when (and (*active-asteroids*:isEmpty) (not displayed-victory-message))
