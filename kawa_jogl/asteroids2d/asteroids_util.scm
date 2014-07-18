@@ -114,6 +114,20 @@
     )
 )
 
+(define-macro (with-min-ms-per-iteration millis . body)
+    (define-gensyms starttime endtime delta)
+    (define gettime `(invoke-static java.lang.System 'currentTimeMillis))
+    `(let ((,starttime 0) (,endtime 0) (,delta 0))
+        (while #t
+            (set! ,starttime ,gettime)
+            ,@body
+            (set! ,endtime ,gettime)
+            (set! ,delta (max 0 (- ,millis (- ,endtime ,starttime))))
+            (if (> ,delta 0) (invoke-static java.lang.Thread 'sleep ,delta))
+        )
+    )
+)
+
 (define (slurp-file filename::String)::String
     (define buf (java.lang.StringBuilder))
     (define file (open-input-file filename))

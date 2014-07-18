@@ -35,18 +35,20 @@
     (label:repaint)
 )
 
+(define-constant +cs-per-frame+ (/ 100 30)) ; centiseconds
+
 (define-constant +shot-color+ '(1 1 1))
-(define-constant +shot-speed+ .1)
+(define-constant +shot-speed+ (/ .1 +cs-per-frame+))
 (define-constant +shot-size+ .01)
 (define-constant +shot-momentum-factor+ 5)
-(define-constant +shot-duration+ 45)
+(define-constant +shot-duration+ (* 45 +cs-per-frame+))
 (define-constant +shot-vertidx+ (append-polygon-to-global-buffer (calc-poly 0 (constantly +shot-size+) 10 (constantly (apply values +shot-color+)))))
 
 (define-simple-class shot (drawer)
     (x::double 0) (y::double 0)
     (rot::double 0)
     (velocity::double 0)
-    (frames-until-decay::int +shot-duration+)
+    (centiseconds-until-decay::int +shot-duration+)
     ((*init* ix iy irot ivel)
         (set! x ix)
         (set! y iy)
@@ -54,18 +56,18 @@
         (set! velocity (+ ivel +shot-speed+)) ; shots start off with the ship's velocity added to the constant
     )
     ((updatePosition!)
-        (inc! frames-until-decay -1)
+        (inc! centiseconds-until-decay -1)
         (set-values! (x y) (apply-polar-movement x y velocity rot))
         (inplace! (wrap (- +logical-width+) +logical-width+) x)
         (inplace! (wrap (- +logical-height+) +logical-height+) y)
     )
-    ((expired?) (< frames-until-decay 0))
+    ((expired?) (< centiseconds-until-decay 0))
     ((draw gl2) (drawPolygon gl2 x y rot +shot-vertidx+))
 )
 
-(define-constant +frames-between-shots+ 10)
-(define-constant +min-ship-speed+ -0.09)
-(define-constant +max-ship-speed+ 0.10)
+(define-constant +centiseconds-between-shots+ (* 10 +cs-per-frame+))
+(define-constant +min-ship-speed+ (/ -0.09 +cs-per-frame+))
+(define-constant +max-ship-speed+ (/ 0.10 +cs-per-frame+))
 (define *active-shots*::ArrayList[shot] (ArrayList))
 
 (define-simple-class ship (drawer)
@@ -74,7 +76,7 @@
     (velocity::double 0)
     (size .1)
     (color '(1 .5 0))
-    (shooting-cooldown::int 0) ; in frames for now, probably should make more robust by handling milliseconds
+    (shooting-cooldown::int 0)
     ((*init*) (recalcVerts!) (set! rot (/ tau 4)))
     (vertidx)
     ((recalcVerts!) (set! vertidx (append-polygon-to-global-buffer (calc-poly 0 (lambda (i) (if (= i 0) (* 2 size) size)) 3 (constantly (apply values color)))))) ; isosceles triangle
@@ -89,7 +91,7 @@
     ((draw gl2) (drawPolygon gl2 x y rot vertidx))
     ((shoot)
         (*active-shots*:add (shot x y rot velocity))
-        (set! shooting-cooldown +frames-between-shots+)
+        (set! shooting-cooldown +centiseconds-between-shots+)
     )
     ((resetPosition&Momentum!)
         (set!* (x y rot velocity) (0 0 (/ tau 4) 0))
@@ -98,8 +100,8 @@
 
 (define-constant +min-asteroid-size+ .1)
 (define-constant +max-asteroid-size+ .5)
-(define-constant +min-asteroid-ivel+ .01)
-(define-constant +max-asteroid-ivel+ .05)
+(define-constant +min-asteroid-ivel+ (/ .01 +cs-per-frame+))
+(define-constant +max-asteroid-ivel+ (/ .05 +cs-per-frame+))
 (define +asteroid-speed-multiplier+ 1)
 
 (define-simple-class asteroid (drawer)
@@ -254,8 +256,8 @@
 
 (define *currently-held-keys* (java.util.HashSet))
 (define displayed-victory-message #f)
-(define-constant +rotation-delta+ (/ tau 64))
-(define-constant +velocity-delta+ .01)
+(define-constant +rotation-delta+ (/ (/ tau 64) +cs-per-frame+))
+(define-constant +velocity-delta+ (/ .01 (* 2 +cs-per-frame+)))
 (define (event-loop)
     (define-macro (key-held? key) `(*currently-held-keys*:contains (static-field KeyEvent ,key)))
     (if (key-held? 'VK_LEFT) (player-ship:rotate +rotation-delta+))
@@ -330,7 +332,6 @@
 (define *recent-mouse-obj-coords* (values 0 0))
 
 (define (render gl2::GL2)
-    (event-loop) ; might be a good idea to move this out of render later
     (when *buffer-needs-reset*
         (reset-polygons-buffer! gl2)
         (set! *buffer-needs-reset* #f)
@@ -434,10 +435,10 @@
         (gl2:glEnableVertexAttribArray color-attrib)
         (gl2:glUseProgram *shader-program*)
 )
-
+(define *eventloop-render-mutex* (java.lang.Object))
 (glcanv:addGLEventListener (object (javax.media.opengl.GLEventListener)
     ((*init*) #!void)
-    ((display drawable) (render ((drawable:getGL):getGL2)))
+    ((display drawable) (synchronized *eventloop-render-mutex* (render ((drawable:getGL):getGL2))))
     ((init drawable)
         (let ((gl (javax.media.opengl.DebugGL2 ((drawable:getGL):getGL2))))
             ;(gl:glEnableClientState gl:GL_VERTEX_ARRAY)
@@ -521,3 +522,4 @@
 (define anim (com.jogamp.opengl.util.FPSAnimator glcanv 30))
 (anim:start)
 (glcanv:requestFocus)
+(with-min-ms-per-iteration 10 (synchronized *eventloop-render-mutex* (event-loop)))
