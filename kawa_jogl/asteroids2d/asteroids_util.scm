@@ -253,10 +253,12 @@
         (define firstx (buf:get))
         (define firsty (buf:get))
         (let loop ((oldx firstx) (oldy firsty) (i 0))
-            (buf:position (+ (buf:position) 4)) ;skip z, r, g, b, this may need to be modified to include z during the transition to 3d
-            ;(printf "bufpos %s\n" (buf:position))
             (if (< i numverts)
                 (begin
+                    (define newpos (+ (buf:position) 4))
+                    ;(printf "newpos: %s\n" newpos)
+                    (buf:position newpos) ;skip z, r, g, b, this may need to be modified to include z during the transition to 3d
+                    ;(printf "bufpos %s\n" (buf:position))
                     (define newx (if (= (+ i 1) numverts) firstx (buf:get)))
                     (define newy (if (= (+ i 1) numverts) firsty (buf:get)))
                     (if (inside-line? nx ny oldx oldy newx newy)
@@ -359,6 +361,7 @@
 ;    (let ((tmp (float[] length: (*polygons-buffer*:capacity))))
 ;        (*polygons-buffer*:get tmp)
 ;        (display tmp) (newline)
+;        (display tmp:length) (newline)
 ;    )
     (*polygons-buffer*:rewind)
     ; the multiplication by 4 is because glBufferData takes a size in bytes

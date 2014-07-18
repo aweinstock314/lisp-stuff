@@ -19,6 +19,9 @@
 (define-constant *lives-fmtstr* "Lives: %s")
 (define *lives* 3)
 (define *liveslabel* (javax.swing.JLabel (String:format *lives-fmtstr* *lives*)))
+(define-constant *level-fmtstr* "Level: %s")
+(define *level* 1)
+(define *levellabel* (javax.swing.JLabel (String:format *level-fmtstr* *level*)))
 
 (define-constant +label-dimensions+ (java.awt.Dimension 128 32))
 (define (initialize-label jframe::javax.swing.JFrame label::javax.swing.JLabel x y)
@@ -152,7 +155,7 @@
 (define (spawn-asteroids! amount::integer)
     (pascal-for (i 0 amount 1) (*active-asteroids*:add (asteroid)))
 )
-(spawn-asteroids! 10)
+(spawn-asteroids! 5)
 
 (define (closest-asteroid-to-point x y)::asteroid
     (define (sqr-dist a::asteroid)
@@ -225,6 +228,17 @@
     )
 )
 
+(define *buffer-needs-reset* #f)
+
+(define (level-cleared!)
+    (printf "Level %s cleared! Making %s new asteroids!\n" *level* (* *level* 5))
+    (inc! *level* 1)
+    (player-ship:resetPosition&Momentum!)
+    (set! *use-respawn-safety-box* #t)
+    (spawn-asteroids! (* *level* 5))
+    (set! *buffer-needs-reset* #t)
+)
+
 (define jf (javax.swing.JFrame))
 (define *show-extra-debugging-views* #f)
 (define +window-width+ +screen-width+)
@@ -266,13 +280,15 @@
     )
     (when (and (*active-asteroids*:isEmpty) (not displayed-victory-message))
         (printf "All asteroids have been cleared!\n")
+        (level-cleared!)
+        ;(set! displayed-victory-message #t)
         ;(javax.swing.JOptionPane:showMessageDialog #!null "All asteroids have been cleared!")
-        (set! displayed-victory-message #t)
         ;(exit 0)
     )
     ;(printf "pos: %s, %s\n" player-ship:x player-ship:y)
     (update-label *scorelabel* *score-fmtstr* *score*)
     (update-label *liveslabel* *lives-fmtstr* *lives*)
+    (update-label *levellabel* *level-fmtstr* *level*)
 )
 
 (define-constant +background-intensity+ .5)
@@ -315,6 +331,10 @@
 
 (define (render gl2::GL2)
     (event-loop) ; might be a good idea to move this out of render later
+    (when *buffer-needs-reset*
+        (reset-polygons-buffer! gl2)
+        (set! *buffer-needs-reset* #f)
+    )
     (gl2:glClear gl2:GL_COLOR_BUFFER_BIT)
     (define-constant (set-projection gl2::GL2 width::double height::double)
         (gl2:glMatrixMode gl2:GL_PROJECTION)
@@ -494,6 +514,7 @@
 (jf:setLayout #!null)
 (initialize-label jf *scorelabel* 0 0)
 (initialize-label jf *liveslabel* (- +window-width+ (+label-dimensions+:getWidth)) 0)
+(initialize-label jf *levellabel* (- +window-width+ (+label-dimensions+:getWidth)) (- +window-height+ (+label-dimensions+:getHeight)))
 (jf:add glcanv)
 (glcanv:setBounds 0 0 640 480)
 (jf:setVisible #t)
