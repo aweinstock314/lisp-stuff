@@ -132,7 +132,7 @@
         (inplace! (wrap (- +logical-height+) +logical-height+) y)
     )
     ((split r v) ; takes rotation and velocity of incoming shot, for momentum calculation
-        (printf "splitting asteroid at (%f, %f), %d children\n" x y (children:size))
+        ;(printf "splitting asteroid at (%f, %f), %d children\n" x y (children:size))
         (inc! *score* 1)
         (java-iterate children c
             (set!* (c:x c:y) (x y))
@@ -149,7 +149,10 @@
 )
 
 (define *active-asteroids*::ArrayList[asteroid] (ArrayList))
-(pascal-for (i 0 10 1) (*active-asteroids*:add (asteroid)))
+(define (spawn-asteroids! amount::integer)
+    (pascal-for (i 0 amount 1) (*active-asteroids*:add (asteroid)))
+)
+(spawn-asteroids! 10)
 
 (define (closest-asteroid-to-point x y)::asteroid
     (define (sqr-dist a::asteroid)
@@ -216,7 +219,10 @@
     (player-ship:resetPosition&Momentum!)
     (set! *use-respawn-safety-box* #t)
     (inc! *lives* -1)
-    (printf "Lives-remaining: %s\n" *lives*)
+    (if (< *lives* 0)
+        (begin (printf "Game over, no lives left.\n") (java.lang.System:exit 0))
+        (printf "Lives-remaining: %s\n" *lives*)
+    )
 )
 
 (define jf (javax.swing.JFrame))
@@ -397,21 +403,25 @@
 
 (define *shader-program* ::int 0)
 
+(define (reset-polygons-buffer! gl2::GL2)
+        (set-polygons-buffer gl2)
+        (set! *shader-program* (make-shader-program gl2 (file-as-string-constant "identityshader.vert") (file-as-string-constant "identityshader.frag")))
+        (define pos-attrib ::int (gl2:glGetAttribLocation *shader-program* "position"))
+        (gl2:glVertexAttribPointer pos-attrib 3 gl2:GL_FLOAT #f 24 0)
+        (gl2:glEnableVertexAttribArray pos-attrib)
+        (define color-attrib ::int (gl2:glGetAttribLocation *shader-program* "color"))
+        (gl2:glVertexAttribPointer color-attrib 3 gl2:GL_FLOAT #f 24 12)
+        (gl2:glEnableVertexAttribArray color-attrib)
+        (gl2:glUseProgram *shader-program*)
+)
+
 (glcanv:addGLEventListener (object (javax.media.opengl.GLEventListener)
     ((*init*) #!void)
     ((display drawable) (render ((drawable:getGL):getGL2)))
     ((init drawable)
         (let ((gl (javax.media.opengl.DebugGL2 ((drawable:getGL):getGL2))))
             ;(gl:glEnableClientState gl:GL_VERTEX_ARRAY)
-            (set-polygons-buffer gl)
-            (set! *shader-program* (make-shader-program gl (file-as-string-constant "identityshader.vert") (file-as-string-constant "identityshader.frag")))
-            (define pos-attrib ::int (gl:glGetAttribLocation *shader-program* "position"))
-            (gl:glVertexAttribPointer pos-attrib 3 gl:GL_FLOAT #f 24 0)
-            (gl:glEnableVertexAttribArray pos-attrib)
-            (define color-attrib ::int (gl:glGetAttribLocation *shader-program* "color"))
-            (gl:glVertexAttribPointer color-attrib 3 gl:GL_FLOAT #f 24 12)
-            (gl:glEnableVertexAttribArray color-attrib)
-            (gl:glUseProgram *shader-program*)
+            (reset-polygons-buffer! gl)
         )
     )
     ((dispose drawable) #!void)
