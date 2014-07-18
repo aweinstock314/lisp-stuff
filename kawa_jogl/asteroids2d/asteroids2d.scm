@@ -514,7 +514,7 @@
 (jf:setLayout #!null)
 (initialize-label jf *scorelabel* 0 0)
 (initialize-label jf *liveslabel* (- +window-width+ (+label-dimensions+:getWidth)) 0)
-(initialize-label jf *levellabel* (- +window-width+ (+label-dimensions+:getWidth)) (- +window-height+ (+label-dimensions+:getHeight)))
+(initialize-label jf *levellabel* (- +window-width+ (+label-dimensions+:getWidth)) (+label-dimensions+:getHeight))
 (jf:add glcanv)
 (glcanv:setBounds 0 0 640 480)
 (jf:setVisible #t)
