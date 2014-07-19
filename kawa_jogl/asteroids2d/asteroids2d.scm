@@ -454,7 +454,7 @@
             (draw-debugging-poly gl2 (/ +screen-width+ 2) 0 (/ +screen-width+ 2) (/ +screen-height+ 2))
             (draw-shipview gl2 0 0 (/ +screen-width+ 2) (/ +screen-height+ 2))
         )
-        (draw-shipview gl2 0 (- +window-height+ +screen-height+) +screen-width+ +screen-height+)
+        (draw-shipview gl2 0 (- +window-height+ height) width height)
     )
 )
 
@@ -542,12 +542,21 @@
     )
 )
 
+(define *have-second-player* #f)
+
 (define jf (javax.swing.JFrame))
-(define *asteroids-panel*::asteroids-panel (asteroids-panel +window-width+ +window-height+))
-(jf:setSize +window-width+ +window-height+)
+(define *asteroids-panel*::asteroids-panel (asteroids-panel +screen-width+ +screen-height+))
+(define ap2::asteroids-panel #!null)
+(when *have-second-player*
+    (set! ap2 (asteroids-panel +screen-width+ +screen-height+))
+    (ap2:setBounds +screen-width+ 0 +screen-width+ +screen-height+)
+)
+(jf:setSize (if *have-second-player* (* +window-width+ 2) +window-width+) +window-height+)
 (jf:setResizable #f)
 (jf:setDefaultCloseOperation javax.swing.JFrame:EXIT_ON_CLOSE)
 (jf:setLayout #!null)
 (jf:add *asteroids-panel*)
+(when *have-second-player* (jf:add ap2))
 (jf:setVisible #t)
 (*asteroids-panel*:post-visible-initialization!)
+(when *have-second-player* (ap2:post-visible-initialization!))
