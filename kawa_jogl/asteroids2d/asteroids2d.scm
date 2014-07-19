@@ -1,4 +1,6 @@
-(require <asteroids_util>)
+(require <asteroids_util_general>)
+(require <asteroids_util_math>)
+(require <asteroids_util_opengl>)
 
 (define-constant +screen-width+ 640)
 (define-constant +screen-height+ 480)
