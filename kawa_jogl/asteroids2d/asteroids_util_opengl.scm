@@ -254,4 +254,17 @@
     (gl2:glPopMatrix)
 )
 
+(define (draw-dotted-line gl2 dot x1 y1 x2 y2)
+    (let* ( (density 20)
+            (dx (- x2 x1))
+            (dy (- y2 y1))
+            (dist (java.lang.Math:sqrt (+ (* dx dx) (* dy dy))))
+            (slope (atan2 dy dx))
+          )
+        (pascal-for (i 0 density 1)
+            (define j (/ i density))
+            (drawPolygon gl2 (+ x1 (* j dist (cos slope))) (+ y1 (* j dist (sin slope))) 0 dot)
+        )
+    )
+)
 ) ; end of with-all-forms-exported

@@ -2,6 +2,7 @@
 (require <asteroids_util_math>)
 (require <asteroids_util_opengl>)
 
+;; GUI constants
 (define-constant +screen-width+ 640)
 (define-constant +screen-height+ 480)
 
@@ -11,9 +12,28 @@
 (define +viewport-width+ 3)
 (define +viewport-height+ 3)
 
+(define *show-extra-debugging-views* #f)
+(define +window-width+ +screen-width+)
+(define +window-height+ (if *show-extra-debugging-views* (* 1.5 +screen-height+) +screen-height+))
+
 (define-simple-class drawer () interface: #t
     ((draw gl2::GL2) #!abstract)
 )
+
+(define-constant +background-intensity+ .5)
+(define-constant background (append-polygon-to-global-buffer (calc-poly
+    (/ tau 8) (constantly (sqrt (* 2 (square +logical-width+)))) 4
+    (lambda (i) (case i
+        ((0) (values +background-intensity+ +background-intensity+ 0))
+        ((1) (values 0 +background-intensity+ +background-intensity+))
+        ((2) (values 0 0 +background-intensity+))
+        ((3) (values 0 +background-intensity+ 0))
+    ))
+)))
+
+(define-constant white-bg (append-polygon-to-global-buffer (calc-poly 0 (constantly 20) 4 (constantly (values 1 1 1)))))
+(define-constant black-dot (append-polygon-to-global-buffer (calc-poly 0 (constantly .01) 10 (constantly (values 0 0 0)))))
+(define-constant blue-dot (append-polygon-to-global-buffer (calc-poly 0 (constantly .01) 10 (constantly (values 0 0 1)))))
 
 (define-constant *score-fmtstr* "Score: %s")
 (define *score* 0)
@@ -37,6 +57,7 @@
     (label:repaint)
 )
 
+;; Game constants
 (define-constant +cs-per-frame+ (/ 100 30)) ; centiseconds
 
 (define-constant +shot-color+ '(1 1 1))
@@ -46,6 +67,25 @@
 (define-constant +shot-duration+ (* 45 +cs-per-frame+))
 (define-constant +shot-vertidx+ (append-polygon-to-global-buffer (calc-poly 0 (constantly +shot-size+) 10 (constantly (apply values +shot-color+)))))
 
+(define-constant +centiseconds-between-shots+ (* 10 +cs-per-frame+))
+(define-constant +min-ship-speed+ (/ -0.09 +cs-per-frame+))
+(define-constant +max-ship-speed+ (/ 0.10 +cs-per-frame+))
+
+(define-constant +min-asteroid-size+ .1)
+(define-constant +max-asteroid-size+ .5)
+(define-constant +min-asteroid-ivel+ (/ .01 +cs-per-frame+))
+(define-constant +max-asteroid-ivel+ (/ .05 +cs-per-frame+))
+(define +asteroid-speed-multiplier+ 1)
+(define-constant +initial-asteroids-count+ 5)
+
+(define-constant +respawn-box-vertidx+ (append-polygon-to-global-buffer (calc-poly (/ tau 8) (constantly (sqrt 2)) 4 (constantly (values 0 .25 .25)))))
+(define-constant push-outside-respawn-safety-box (push-outside -1 -1 2 2))
+
+; these have to do with input sensitivity, not sure if they belong here or in GUI constants section
+(define-constant +rotation-delta+ (/ (/ tau 64) +cs-per-frame+))
+(define-constant +velocity-delta+ (/ .01 (* 2 +cs-per-frame+)))
+
+;; Game objects
 (define-simple-class shot (drawer)
     (x::double 0) (y::double 0)
     (rot::double 0)
@@ -66,11 +106,6 @@
     ((expired?) (< centiseconds-until-decay 0))
     ((draw gl2) (drawPolygon gl2 x y rot +shot-vertidx+))
 )
-
-(define-constant +centiseconds-between-shots+ (* 10 +cs-per-frame+))
-(define-constant +min-ship-speed+ (/ -0.09 +cs-per-frame+))
-(define-constant +max-ship-speed+ (/ 0.10 +cs-per-frame+))
-(define *active-shots*::ArrayList[shot] (ArrayList))
 
 (define-simple-class ship (drawer)
     (x::double 0) (y::double 0)
@@ -99,12 +134,6 @@
         (set!* (x y rot velocity) (0 0 (/ tau 4) 0))
     )
 )
-
-(define-constant +min-asteroid-size+ .1)
-(define-constant +max-asteroid-size+ .5)
-(define-constant +min-asteroid-ivel+ (/ .01 +cs-per-frame+))
-(define-constant +max-asteroid-ivel+ (/ .05 +cs-per-frame+))
-(define +asteroid-speed-multiplier+ 1)
 
 (define-simple-class asteroid (drawer)
     (x::double (random-range (- +logical-width+) +logical-width+))
@@ -155,11 +184,27 @@
     )
 )
 
+;; Game state
+(define *active-shots*::ArrayList[shot] (ArrayList))
 (define *active-asteroids*::ArrayList[asteroid] (ArrayList))
+(define *respawn-box-active* #t)
+(define *buffer-needs-reset* #f)
+(define player-ship (ship))
+
+;; Interface/OpenGL state
+(define displayed-victory-message #f)
+(define *currently-held-keys* (java.util.HashSet))
+(define *shader-program* ::int 0)
+(define *eventloop-render-mutex* (java.lang.Object))
+(define *whole-area-matrix*::PMVMatrix #!null)
+(define *whole-area-dims*::int[] #!null)
+(define *recent-mouse-obj-coords* (values 0 0))
+
+
 (define (spawn-asteroids! amount::integer)
     (pascal-for (i 0 amount 1) (*active-asteroids*:add (asteroid)))
 )
-(spawn-asteroids! 5)
+(spawn-asteroids! +initial-asteroids-count+)
 
 (define (closest-asteroid-to-point x y)::asteroid
     (define (sqr-dist a::asteroid)
@@ -220,11 +265,9 @@
     ))
 )
 
-(define player-ship (ship))
-
 (define (player-death!)
     (player-ship:resetPosition&Momentum!)
-    (set! *use-respawn-safety-box* #t)
+    (set! *respawn-box-active* #t)
     (inc! *lives* -1)
     (if (< *lives* 0)
         (begin (printf "Game over, no lives left.\n") (java.lang.System:exit 0))
@@ -232,34 +275,16 @@
     )
 )
 
-(define *buffer-needs-reset* #f)
-
 (define (level-cleared!)
     (printf "Level %s cleared! Making %s new asteroids!\n" *level* (* *level* 5))
     (inc! *level* 1)
     (player-ship:resetPosition&Momentum!)
-    (set! *use-respawn-safety-box* #t)
+    (set! *respawn-box-active* #t)
     (spawn-asteroids! (* *level* 5))
     (set! *buffer-needs-reset* #t)
 )
-
-(define jf (javax.swing.JFrame))
-(define *show-extra-debugging-views* #f)
-(define +window-width+ +screen-width+)
-(define +window-height+ (if *show-extra-debugging-views* (* 1.5 +screen-height+) +screen-height+))
-(jf:setSize +window-width+ +window-height+)
-(jf:setResizable #f)
-(jf:setDefaultCloseOperation javax.swing.JFrame:EXIT_ON_CLOSE)
 (define glcanv (javax.media.opengl.awt.GLCanvas))
 
-(define *use-respawn-safety-box* #t)
-(define-constant +respawn-box-vertidx+ (append-polygon-to-global-buffer (calc-poly (/ tau 8) (constantly (sqrt 2)) 4 (constantly (values 0 .25 .25)))))
-(define push-outside-respawn-safety-box (push-outside -1 -1 2 2))
-
-(define *currently-held-keys* (java.util.HashSet))
-(define displayed-victory-message #f)
-(define-constant +rotation-delta+ (/ (/ tau 64) +cs-per-frame+))
-(define-constant +velocity-delta+ (/ .01 (* 2 +cs-per-frame+)))
 (define (event-loop)
     (define-macro (key-held? key) `(*currently-held-keys*:contains (static-field KeyEvent ,key)))
     (if (key-held? 'VK_LEFT) (player-ship:rotate +rotation-delta+))
@@ -277,7 +302,7 @@
     )
     (java-iterate *active-asteroids* (a asteroid)
         (a:updatePosition!)
-        (if *use-respawn-safety-box* (set-values! (a:x a:y) (push-outside-respawn-safety-box a:x a:y)))
+        (if *respawn-box-active* (set-values! (a:x a:y) (push-outside-respawn-safety-box a:x a:y)))
         (if (inside-poly? *polygons-buffer* a:vertidx a:x a:y a:rot player-ship:x player-ship:y)
             (player-death!)
         )
@@ -294,44 +319,6 @@
     (update-label *liveslabel* *lives-fmtstr* *lives*)
     (update-label *levellabel* *level-fmtstr* *level*)
 )
-
-(define-constant +background-intensity+ .5)
-
-
-(define-constant background (append-polygon-to-global-buffer (calc-poly
-    (/ tau 8) (constantly (sqrt (* 2 (square +logical-width+)))) 4
-    (lambda (i) (case i
-        ((0) (values +background-intensity+ +background-intensity+ 0))
-        ((1) (values 0 +background-intensity+ +background-intensity+))
-        ((2) (values 0 0 +background-intensity+))
-        ((3) (values 0 +background-intensity+ 0))
-    ))
-)))
-
-(define-constant white-bg (append-polygon-to-global-buffer (calc-poly 0 (constantly 20) 4 (constantly (values 1 1 1)))))
-(define-constant black-dot (append-polygon-to-global-buffer (calc-poly 0 (constantly .01) 10 (constantly (values 0 0 0)))))
-(define-constant blue-dot (append-polygon-to-global-buffer (calc-poly 0 (constantly .01) 10 (constantly (values 0 0 1)))))
-(define (draw-dotted-line gl2 dot x1 y1 x2 y2)
-    (let* ( (density 20)
-            (dx (- x2 x1))
-            (dy (- y2 y1))
-            (dist (java.lang.Math:sqrt (+ (* dx dx) (* dy dy))))
-            (slope (atan2 dy dx))
-          )
-        (pascal-for (i 0 density 1)
-            (define j (/ i density))
-            (drawPolygon gl2 (+ x1 (* j dist (cos slope))) (+ y1 (* j dist (sin slope))) 0 blue-dot)
-        )
-    )
-)
-
-(define (draw-background gl2::GL2)
-    (drawPolygon gl2 0 0 0 background)
-)
-
-(define *whole-area-matrix*::PMVMatrix #!null)
-(define *whole-area-dims*::int[] #!null)
-(define *recent-mouse-obj-coords* (values 0 0))
 
 (define (render gl2::GL2)
     (when *buffer-needs-reset*
@@ -355,8 +342,11 @@
         (gl2:glTranslated (- cx) (- cy) 0)
         (gl2:glTranslated (- ox) (- oy) 0)
     )
+    (define-constant (draw-background gl2::GL2)
+        (drawPolygon gl2 0 0 0 background)
+    )
     (define-constant (draw-foreground gl2 cx cy)
-        (if *use-respawn-safety-box* (drawPolygon gl2 0 0 0 +respawn-box-vertidx+))
+        (if *respawn-box-active* (drawPolygon gl2 0 0 0 +respawn-box-vertidx+))
         (player-ship:draw gl2)
         (define-macro (draw-if-within-bounds x)
             `(when (and (< (abs (- (field ,x 'x) cx)) +viewport-width+)
@@ -432,8 +422,6 @@
     )
 )
 
-(define *shader-program* ::int 0)
-
 (define (reset-polygons-buffer! gl2::GL2)
         (set-polygons-buffer gl2)
         (set! *shader-program* (make-shader-program gl2 (file-as-string-constant "identityshader.vert") (file-as-string-constant "identityshader.frag")))
@@ -445,7 +433,6 @@
         (gl2:glEnableVertexAttribArray color-attrib)
         (gl2:glUseProgram *shader-program*)
 )
-(define *eventloop-render-mutex* (java.lang.Object))
 (glcanv:addGLEventListener (object (javax.media.opengl.GLEventListener)
     ((*init*) #!void)
     ((display drawable) (synchronized *eventloop-render-mutex* (render ((drawable:getGL):getGL2))))
@@ -461,7 +448,7 @@
 
 (glcanv:addKeyListener (object (java.awt.event.KeyListener)
     ((keyPressed ev)
-        (set! *use-respawn-safety-box* #f) ; only provide until a key is pressed
+        (set! *respawn-box-active* #f) ; only provide until a key is pressed
 ;;        ; split a random asteroid, for testing purposes, when 's' is pressed
 ;;        (when (equal? (ev:getKeyCode) KeyEvent:VK_S)
 ;;            (define a (*active-asteroids* (random (*active-asteroids*:size))))
@@ -522,12 +509,17 @@
         ;(printf "(%s, %s)\n" +viewport-width+ +viewport-height+)
     )
 ))
+
+(define jf (javax.swing.JFrame))
+(jf:setSize +window-width+ +window-height+)
+(jf:setResizable #f)
+(jf:setDefaultCloseOperation javax.swing.JFrame:EXIT_ON_CLOSE)
 (jf:setLayout #!null)
 (initialize-label jf *scorelabel* 0 0)
 (initialize-label jf *liveslabel* (- +window-width+ (+label-dimensions+:getWidth)) 0)
 (initialize-label jf *levellabel* (- +window-width+ (+label-dimensions+:getWidth)) (+label-dimensions+:getHeight))
-(jf:add glcanv)
 (glcanv:setBounds 0 0 640 480)
+(jf:add glcanv)
 (jf:setVisible #t)
 (define anim (com.jogamp.opengl.util.FPSAnimator glcanv 30))
 (anim:start)
