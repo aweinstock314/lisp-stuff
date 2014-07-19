@@ -394,7 +394,7 @@
         (pascal-for (i min-x max-x 1) (pascal-for (j min-y max-y 1)
             (let ((ox (* 2 i +logical-width+)) (oy (* 2 j +logical-height+)))
                 (prepare-frame gl2 player-ship:x player-ship:y ox oy)
-                (draw-foreground gl2 player-ship:x player-ship:y)
+                (draw-foreground gl2 (+ player-ship:x ox) (+ player-ship:y oy))
             )
         ))
     )
