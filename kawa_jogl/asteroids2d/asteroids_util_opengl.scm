@@ -4,6 +4,8 @@
 (with-all-forms-exported
 
 (define-alias GL2 javax.media.opengl.GL2)
+(define-alias GLCanvas javax.media.opengl.awt.GLCanvas)
+(define-alias FPSAnimator com.jogamp.opengl.util.FPSAnimator)
 (define-alias KeyEvent java.awt.event.KeyEvent)
 (define-alias FloatBuffer java.nio.FloatBuffer)
 (define-constant newDirectFloatBuffer com.jogamp.common.nio.Buffers:newDirectFloatBuffer)
