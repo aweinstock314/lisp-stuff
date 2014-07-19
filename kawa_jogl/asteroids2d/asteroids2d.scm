@@ -295,8 +295,6 @@
     ))
 )
 
-(define glcanv (javax.media.opengl.awt.GLCanvas))
-
 (define (event-loop gs::game-state)
     (define-macro (key-held? key)
         `(invoke (field *interface-state* 'currently-held-keys) 'contains (static-field KeyEvent ,key))
@@ -452,8 +450,20 @@
         (gl2:glEnableVertexAttribArray color-attrib)
         (gl2:glUseProgram *interface-state*:shader-program)
 )
-(glcanv:addGLEventListener (object (javax.media.opengl.GLEventListener)
-    ((*init*) #!void)
+(define (mousecoords->objcoords x y)
+    (if (or (equal? #!null *interface-state*:whole-area-matrix)
+            (equal? #!null *interface-state*:whole-area-dims))
+        (values 0 0)
+        (begin
+            (define output (float[] length: 3))
+            ; the subtraction is because AWT has the origin at the upper-left, OpenGL has it at bottom-left
+            (*interface-state*:whole-area-matrix:gluUnProject x (- +window-height+ y) 0 *interface-state*:whole-area-dims 0 output 0)
+            (values (output 0) (output 1))
+        )
+    )
+)
+(define-simple-class asteroids-panel (javax.swing.JPanel javax.media.opengl.GLEventListener java.awt.event.KeyListener java.awt.event.MouseListener java.awt.event.MouseMotionListener java.awt.event.MouseWheelListener)
+    ; GLEventListener
     ((display drawable) (synchronized *game-state*:eventloop-render-mutex (render ((drawable:getGL):getGL2) *game-state*)))
     ((init drawable)
         (let ((gl (javax.media.opengl.DebugGL2 ((drawable:getGL):getGL2))))
@@ -463,9 +473,7 @@
     )
     ((dispose drawable) #!void)
     ((reshape drawable x y w h) #!void)
-))
-
-(glcanv:addKeyListener (object (java.awt.event.KeyListener)
+    ; KeyListener
     ((keyPressed ev)
         (set! *game-state*:respawn-box-active #f) ; only provide until a key is pressed
 ;;        ; split a random asteroid, for testing purposes, when 's' is pressed
@@ -483,21 +491,7 @@
         (*interface-state*:currently-held-keys:remove (ev:getKeyCode))
     )
     ((keyTyped ev) #!void)
-))
-
-(define (mousecoords->objcoords x y)
-    (if (or (equal? #!null *interface-state*:whole-area-matrix)
-            (equal? #!null *interface-state*:whole-area-dims))
-        (values 0 0)
-        (begin
-            (define output (float[] length: 3))
-            ; the subtraction is because AWT has the origin at the upper-left, OpenGL has it at bottom-left
-            (*interface-state*:whole-area-matrix:gluUnProject x (- +window-height+ y) 0 *interface-state*:whole-area-dims 0 output 0)
-            (values (output 0) (output 1))
-        )
-    )
-)
-(glcanv:addMouseListener (object (java.awt.event.MouseListener)
+    ; MouseListener
     ((mouseClicked ev)
         (unless (equal? *interface-state*:whole-area-matrix #!null)
             (receive (x y) (mousecoords->objcoords (ev:getX) (ev:getY))
@@ -511,15 +505,13 @@
     ((mouseExited ev) #!void)
     ((mousePressed ev) #!void)
     ((mouseReleased ev) #!void)
-))
-(glcanv:addMouseMotionListener (object (java.awt.event.MouseMotionListener)
+    ; MouseMotionListener
     ((mouseMoved ev)
         (set! *interface-state*:recent-mouse-obj-coords (mousecoords->objcoords (ev:getX) (ev:getY)))
         ;(display *recent-mouse-obj-coords*) (newline)
     )
     ((mouseDragged ev) #!void)
-))
-(glcanv:addMouseWheelListener (object (java.awt.event.MouseWheelListener)
+    ; MouseWheelListener
     ((mouseWheelMoved ev)
         (define delta (* .5 (ev:getWheelRotation)))
         (inc! +viewport-width+ delta)
@@ -528,7 +520,13 @@
         (inplace! (cut max .5 <>) +viewport-height+)
         ;(printf "(%s, %s)\n" +viewport-width+ +viewport-height+)
     )
-))
+)
+
+(define *asteroids-panel* (asteroids-panel))
+(define glcanv (javax.media.opengl.awt.GLCanvas))
+; according to gnu.bytecode.dump, this doesn't get unrolled (a PairWithPosition literal is consed up at module init, and the code that uses that literal cdrs through it, and uses gnu.kawa.reflect.Invoke to execute the symbols)
+(for-each (lambda (method) (invoke glcanv method *asteroids-panel*))
+    '(addGLEventListener addKeyListener addMouseListener addMouseMotionListener addMouseWheelListener))
 
 (define jf (javax.swing.JFrame))
 (jf:setSize +window-width+ +window-height+)
