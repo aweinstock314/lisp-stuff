@@ -81,7 +81,7 @@
     (define var (car rng))
     (define-gensyms lo hi step)
     `(let ((,lo ,(cadr rng)) (,hi ,(caddr rng)) (,step ,(cadddr rng)))
-        (do ((,var ,lo (+ ,var ,step)))
+        (do ((,var ::integer ,lo (+ ,var ,step)))
             ((= ,var ,hi) #!void)
             ,@body
         )
