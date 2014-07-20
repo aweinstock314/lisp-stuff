@@ -1,5 +1,6 @@
 (require <asteroids_util_general>)
 (require <asteroids_util_math>)
+(require 'list-lib)
 
 (with-all-forms-exported
 
@@ -153,30 +154,28 @@
     )
 )
 
-(define *polygons-buffer* ::FloatBuffer (newDirectFloatBuffer 0))
-(define (append-polygon-to-global-buffer poly::polygon)
-    (let-values (((buf ind) (append-polygon-to-buffer *polygons-buffer* poly)))
-        (set! *polygons-buffer* buf)
-        ind
-    )
-)
-
 (define *vbo-pointers* ::int[] (int[] length: 1))
 
-(define (set-polygons-buffer gl2::GL2)
-;    (*polygons-buffer*:rewind)
-;    (gl2:glVertexPointer 3 gl2:GL_FLOAT 0 *polygons-buffer*)
+(define (set-polygons-buffer gl2::GL2 . buffers)
+    (define total-capacity::integer (fold (lambda (e::FloatBuffer a) (+ a (e:capacity))) 0 buffers))
+    (define concatbuf::FloatBuffer (newDirectFloatBuffer total-capacity))
+    (for-each (lambda (buf::FloatBuffer)
+        (buf:rewind)
+        (pascal-for (i 0 (buf:capacity) 1)
+            (concatbuf:put (buf:get))
+        )
+    ) buffers)
     (gl2:glGenBuffers 1 *vbo-pointers* 0)
     (gl2:glBindBuffer gl2:GL_ARRAY_BUFFER (*vbo-pointers* 0))
-    (*polygons-buffer*:rewind)
-;    (let ((tmp (float[] length: (*polygons-buffer*:capacity))))
-;        (*polygons-buffer*:get tmp)
-;        (display tmp) (newline)
-;        (display tmp:length) (newline)
-;    )
-    (*polygons-buffer*:rewind)
+    (concatbuf:rewind)
+    (let ((tmp (float[] length: (concatbuf:capacity))))
+        (concatbuf:get tmp)
+        (display tmp) (newline)
+        (display tmp:length) (newline)
+    )
+    (concatbuf:rewind)
     ; the multiplication by 4 is because glBufferData takes a size in bytes
-    (gl2:glBufferData gl2:GL_ARRAY_BUFFER (* (*polygons-buffer*:capacity) 4) *polygons-buffer* gl2:GL_DYNAMIC_DRAW)
+    (gl2:glBufferData gl2:GL_ARRAY_BUFFER (* (concatbuf:capacity) 4) concatbuf gl2:GL_DYNAMIC_DRAW)
 )
 
 (define (shader-compiled? gl2::GL2 shader-id)

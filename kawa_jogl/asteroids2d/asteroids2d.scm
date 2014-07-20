@@ -2,6 +2,14 @@
 (require <asteroids_util_math>)
 (require <asteroids_util_opengl>)
 
+(define *polygons-buffer* ::FloatBuffer (newDirectFloatBuffer 0))
+(define (append-polygon-to-global-buffer poly::polygon)
+    (let-values (((buf ind) (append-polygon-to-buffer *polygons-buffer* poly)))
+        (set! *polygons-buffer* buf)
+        ind
+    )
+)
+
 ;; GUI constants
 (define-constant +screen-width+ 640)
 (define-constant +screen-height+ 480)
@@ -231,7 +239,7 @@
     (recent-mouse-obj-coords (values 0 0))
 
     ((reset-polygons-buffer! gl2::GL2)
-            (set-polygons-buffer gl2)
+            (set-polygons-buffer gl2 *polygons-buffer*)
             (set! shader-program (make-shader-program gl2 (file-as-string-constant "identityshader.vert") (file-as-string-constant "identityshader.frag")))
             (define pos-attrib ::int (gl2:glGetAttribLocation shader-program "position"))
             (gl2:glVertexAttribPointer pos-attrib 3 gl2:GL_FLOAT #f 24 0)
