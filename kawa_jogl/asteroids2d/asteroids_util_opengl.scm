@@ -69,9 +69,9 @@
     )
 )
 
-(define (inside-poly? buf::FloatBuffer vertidx ox oy rot px py)
-    (let* ((offset (car vertidx))
-           (numverts (cdr vertidx))
+(define (inside-poly? buf::FloatBuffer vertidx::polygon-index ox oy rot px py)
+    (let* ((offset vertidx:offset)
+           (numverts vertidx:numverts)
            (matmultres (untranslate/rotate ox oy rot px py))
            (nx (matmultres 0)) (ny (matmultres 1))
           )
@@ -130,6 +130,15 @@
     ))
 )
 
+(define-simple-class polygon-index ()
+    (buffer::FloatBuffer)
+    (offset::integer)
+    (numverts::integer)
+    ((*init* b o n)
+        (set!* (buffer offset numverts) (b o n))
+    )
+)
+
 (define (append-polygon-to-buffer old-buffer::FloatBuffer poly::polygon)
     (let* ((old-capacity (old-buffer:capacity))
            (floats-per-vertex 6)
@@ -149,8 +158,7 @@
             (new-buffer:put v:g)
             (new-buffer:put v:b)
         )
-        ; return the new buffer, and an (offset, size) pair for glDrawArrays to use for the new poly
-        (values new-buffer (cons old-vertcount sides))
+        (values new-buffer (polygon-index new-buffer old-vertcount sides))
     )
 )
 
@@ -245,12 +253,12 @@
     ((ct-matrix-mult 4 4 1 float) m1 m2)
 )
 
-(define (drawPolygon gl2::GL2 x y rot vertidx)
+(define (drawPolygon gl2::GL2 x y rot vertidx::polygon-index)
     (gl2:glMatrixMode gl2:GL_MODELVIEW)
     (gl2:glPushMatrix)
     (gl2:glTranslated x y 0)
     (gl2:glRotated (rad->deg rot) 0 0 1)
-    (gl2:glDrawArrays gl2:GL_POLYGON (car vertidx) (cdr vertidx))
+    (gl2:glDrawArrays gl2:GL_POLYGON vertidx:offset vertidx:numverts)
     (gl2:glPopMatrix)
 )
 
