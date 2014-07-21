@@ -161,4 +161,20 @@
     ))
 )
 
+(define (jarray-map f arr::Object[])
+    (returning (arr2::Object[] (Object[] length: arr:length))
+        (do ((i 0 (+ i 1)))
+            ((= i arr:length) #!void)
+            (set! (arr2 i) (f (arr i)))
+        )
+    )
+)
+
+(define (jarray-foldl f arr::Object[] init)
+    (do ((i 0 (+ i 1))
+         (acc init (f acc (arr i))))
+        ((= i arr:length) acc)
+    )
+)
+
 ) ; of end with-all-forms-exported
