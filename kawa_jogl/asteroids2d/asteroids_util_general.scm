@@ -177,4 +177,6 @@
     )
 )
 
+(define identity-hash java.lang.System:identityHashCode)
+
 ) ; of end with-all-forms-exported
