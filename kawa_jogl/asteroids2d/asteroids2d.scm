@@ -300,10 +300,10 @@
     )
 )
 
-(define (split-if-closest-asteroid-overlaps-point! gs::game-state x y rot vel)
+(define (split-if-closest-asteroid-overlaps-point! gs::game-state is::interface-state x y rot vel)
     (define a (closest-asteroid-to-point gs:active-asteroids x y))
     (if (equal? a #!null) #f
-        (if (inside-poly? *polygons-buffer* a:vertidx a:x a:y a:rot x y)
+        (if (inside-poly? is:cbuf a:vertidx a:x a:y a:rot x y)
             (begin
                 (a:split gs rot vel)
                 (gs:active-asteroids:remove a)
@@ -509,7 +509,7 @@
         (unless (equal? interfacestate:whole-area-matrix #!null)
             (receive (x y) (interfacestate:mousecoords->objcoords (ev:getX) (ev:getY))
                 (printf "mouse clicked at (%s, %s) window coords (%s, %s) object coords\n" (ev:getX) (ev:getY) x y)
-                (split-if-closest-asteroid-overlaps-point! gamestate x y 0 0)
+                (split-if-closest-asteroid-overlaps-point! gamestate interfacestate x y 0 0)
             )
         )
     )
