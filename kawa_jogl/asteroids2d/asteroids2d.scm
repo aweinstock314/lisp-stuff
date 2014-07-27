@@ -63,8 +63,8 @@
 (define-constant +shot-color+ '(1 1 1))
 (define-constant +shot-speed+ (/ .2 +cs-per-frame+))
 (define-constant +shot-size+ .01)
-(define-constant +shot-momentum-factor+ 5)
-(define-constant +shot-duration+ (* 45 +cs-per-frame+))
+(define-constant +shot-momentum-factor+ 2.5)
+(define-constant +shot-duration+ (* (/ 45 2) +cs-per-frame+))
 (define-constant +shot-vertidx+ (make-constant-polygon (calc-poly 0 (constantly +shot-size+) 10 (constantly (apply values +shot-color+)))))
 
 (define-constant +centiseconds-between-shots+ (* 10 +cs-per-frame+))
