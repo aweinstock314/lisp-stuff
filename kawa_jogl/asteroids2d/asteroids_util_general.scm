@@ -130,6 +130,16 @@
     )
 )
 
+(define-macro (aif/nn test then-clause #!optional (else-clause #!void))
+    (define-gensyms tmp)
+    `(let ((,tmp ,test))
+        (if (not (equal? ,tmp #!null))
+            (let ((it ,tmp)) ,then-clause)
+            ,else-clause
+        )
+    )
+)
+
 (define (slurp-file filename::String)::String
     (define buf (java.lang.StringBuilder))
     (define file (open-input-file filename))

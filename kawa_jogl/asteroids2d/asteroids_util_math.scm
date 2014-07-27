@@ -53,16 +53,6 @@
     )
 )
 
-(define-macro (aif/nn test then-clause #!optional (else-clause #!void))
-    (define-gensyms tmp)
-    `(let ((,tmp ,test))
-        (if (not (equal? ,tmp #!null))
-            (let ((it ,tmp)) ,then-clause)
-            ,else-clause
-        )
-    )
-)
-
 (define (wpe-helper funcs forms)
     (letrec (
             (evaluatable? (lambda (form)
