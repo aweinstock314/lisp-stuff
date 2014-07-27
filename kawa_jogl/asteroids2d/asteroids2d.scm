@@ -2,6 +2,9 @@
 (require <asteroids_util_math>)
 (require <asteroids_util_opengl>)
 
+; consider getting more of the constants from the command line, possibly via args-fold?
+(define-constant +multiplayer-mode+ (member "--multiplayer" (command-line)))
+
 (define *constant-buffer* '())
 (define (make-constant-polygon poly::polygon) (inplace-polybuffer-append! *constant-buffer* poly))
 
@@ -16,7 +19,7 @@
 (define +viewport-height+ 3)
 
 (define *show-extra-debugging-views* #f)
-(define +window-width+ +screen-width+)
+(define +window-width+ (if +multiplayer-mode+ (* 2 +screen-width+) +screen-width+))
 (define +window-height+ (if *show-extra-debugging-views* (* 1.5 +screen-height+) +screen-height+))
 
 (define-simple-class drawer () interface: #t
@@ -117,7 +120,7 @@
     (size .1)
     (color '(1 .5 0))
     (shooting-cooldown::int 0)
-    (playernumber 1)
+    (playernumber::integer 1)
     (score +initial-score+)
     (lives +initial-lives+)
     ((constructor-helper is::interface-state) access: 'private
@@ -218,18 +221,21 @@
     ((*init* is::interface-state)
         (set! interface is)
         (let ((ship1 (ship interface)))
+            (all-ships:put ship1:playernumber ship1)
             (active-ships:add ship1)
             (active-respawnboxes:add ship1)
             (player-controls:put ship1 (input-controls 'VK_LEFT 'VK_RIGHT 'VK_UP 'VK_DOWN 'VK_SPACE))
         )
-        (let ((ship2 (ship interface 2 0 0 1)))
+        (if +multiplayer-mode+ (let ((ship2 (ship interface 2 0 0 1)))
+            (all-ships:put ship2:playernumber ship2)
             (active-ships:add ship2)
             (active-respawnboxes:add ship2)
             (player-controls:put ship2 (input-controls 'VK_A 'VK_D 'VK_W 'VK_S 'VK_1))
-        )
+        ))
     )
     (interface::interface-state #!null)
     (player-controls::HashMap[ship input-controls] (HashMap))
+    (all-ships::HashMap[integer ship] (HashMap))
     (active-ships::ArrayList[ship] (ArrayList))
     (active-shots::ArrayList[shot] (ArrayList))
     (active-asteroids::ArrayList[asteroid] (ArrayList))
@@ -507,9 +513,14 @@
         (begin
             (draw-whole-area gl2 0 (- +window-height+ +screen-height+) +screen-width+ +screen-height+)
             (draw-debugging-poly gl2 (/ +screen-width+ 2) 0 (/ +screen-width+ 2) (/ +screen-height+ 2))
-            (draw-shipview gl2 (invoke gs:active-ships 'get 0) 0 0 (/ +screen-width+ 2) (/ +screen-height+ 2))
+            (draw-shipview gl2 (invoke gs:all-ships 'get 1) 0 0 (/ +screen-width+ 2) (/ +screen-height+ 2))
         )
-        (draw-shipview gl2 (invoke gs:active-ships 'get 0) 0 (- +window-height+ height) width height)
+        (begin
+            (draw-shipview gl2 (invoke gs:all-ships 'get 1) 0 (- +window-height+ +screen-height+) +screen-width+ +screen-height+)
+            (if +multiplayer-mode+
+                (draw-shipview gl2 (invoke gs:all-ships 'get 2) +screen-width+ (- +window-height+ +screen-height+) +screen-width+ +screen-height+)
+            )
+        )
     )
 )
 
@@ -597,22 +608,12 @@
         (future (with-min-ms-per-iteration 10 (synchronized gamestate:eventloop-render-mutex (print-exceptions (event-loop gamestate interfacestate)))))
     )
 )
-
-(define *have-second-player* #f)
-
 (define jf (javax.swing.JFrame))
-(define *asteroids-panel*::asteroids-panel (asteroids-panel +screen-width+ +screen-height+))
-(define ap2::asteroids-panel #!null)
-(when *have-second-player*
-    (set! ap2 (asteroids-panel +screen-width+ +screen-height+))
-    (ap2:setBounds +screen-width+ 0 +screen-width+ +screen-height+)
-)
-(jf:setSize (if *have-second-player* (* +window-width+ 2) +window-width+) +window-height+)
+(define *asteroids-panel*::asteroids-panel (asteroids-panel +window-width+ +window-height+))
+(jf:setSize +window-width+ +window-height+)
 (jf:setResizable #f)
 (jf:setDefaultCloseOperation javax.swing.JFrame:EXIT_ON_CLOSE)
 (jf:setLayout #!null)
 (jf:add *asteroids-panel*)
-(when *have-second-player* (jf:add ap2))
 (jf:setVisible #t)
 (*asteroids-panel*:post-visible-initialization!)
-(when *have-second-player* (ap2:post-visible-initialization!))
