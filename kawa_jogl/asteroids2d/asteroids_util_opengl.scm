@@ -115,6 +115,10 @@
                 (invoke ,slicename 'add (invoke ,source 'get ,idx))
                 (,loop ,slicename (+ ,idx 1))
             )
+            ((= ,idx (invoke ,source 'size))
+                (invoke ,slicename 'add (invoke ,source 'get 0))
+                (,loop ,slicename (+ ,idx 1))
+            )
         )
     ))
 )
@@ -123,7 +127,7 @@
     (returning (polys::ArrayList[polygon] (ArrayList))
     (let* ((verts poly:verts)
            (size (ceiling (+ (/ (verts:size) 2) .5))))
-        (with-overlapping-slices vertslice verts size 2
+        (with-overlapping-slices vertslice verts size 1
             ;(printf "%s %s\n" (verts:size) (vertslice:size))
             (if (>= (vertslice:size) 3)
                 (polys:add (polygon vertslice))
