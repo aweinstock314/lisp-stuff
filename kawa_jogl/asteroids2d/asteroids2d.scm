@@ -288,19 +288,17 @@
     )
 )
 
-(define (asteroids-near-point asteroids x y thresh)
+(define (asteroids-near-point asteroids::ArrayList[asteroid] x y thresh)
     (define (sqr-dist a::asteroid)
         (define dx (- a:x x))
         (define dy (- a:y y))
-        (define sd (+ (* dx dx) (* dy dy))) ; workaround for "java.lang.Double cannot be cast to gnu.math.Quantity"
-        ;(printf "squaredist between (%s, %s) and (%s, %s) is %s\n" x y a:x a:y sd)
-        (cons a sd)
+        (+ (* dx dx) (* dy dy))
     )
     (define sqrthresh (* thresh thresh))
-    ; this type of transform is probably rather inefficient without deforestation and inlining, revise later
-    (ArrayList-foldl (lambda (acc elem) (if (< (cdr elem) sqrthresh) (cons (car elem) acc) acc))
-        (ArrayList-map sqr-dist asteroids)
-        '()
+    (with-list-collector col
+        (java-iterate asteroids (a asteroid)
+            (if (< (sqr-dist a) sqrthresh) (col a))
+        )
     )
 )
 
