@@ -172,8 +172,12 @@
     (buf::FloatBuffer)
     (starts::HashMap[integer integer] (HashMap)) ; identity hash of float buffer -> starting location in buf
     ((*init* cap::integer) (set! buf (newDirectFloatBuffer cap)))
-    ((offset pidx::polygon-index)
+    ((offset pidx::polygon-index)::integer
+;        (try-catch
         (+ pidx:offset (/ (starts:get (integer (identity-hash pidx:buffer))) 6))
+;        (e java.lang.Exception (e:printStackTrace) 
+;            (printf "in concatenated-buffer.offset: pidx %s, pidx:offset %s, hash(pidx:buffer) %s\n" pidx pidx:offset (identity-hash pidx:buffer))
+;        ))
     )
 )
 

@@ -123,6 +123,13 @@
     )
 )
 
+(define-macro (print-exceptions . body)
+    `(try-catch
+        ,@body
+        (e java.lang.Exception (invoke e 'printStackTrace) #f)
+    )
+)
+
 (define (slurp-file filename::String)::String
     (define buf (java.lang.StringBuilder))
     (define file (open-input-file filename))

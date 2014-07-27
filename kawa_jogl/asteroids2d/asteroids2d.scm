@@ -224,6 +224,7 @@
         (printf "Level %s cleared! Making %s new asteroids!\n" level (* level +asteroids-per-level+))
         (inc! level 1)
         (player-ship:resetPosition&Momentum!)
+        (active-shots:clear)
         (set! respawn-box-active #t)
         (spawn-asteroids! (* level +asteroids-per-level+))
         (set! buffer-needs-reset #t)
@@ -477,7 +478,7 @@
     (gamestate::game-state (game-state))
     (interfacestate::interface-state (interface-state))
     ; GLEventListener
-    ((display drawable) (synchronized gamestate:eventloop-render-mutex (render ((drawable:getGL):getGL2) gamestate interfacestate (getWidth) (getHeight))))
+    ((display drawable) (synchronized gamestate:eventloop-render-mutex (print-exceptions (render ((drawable:getGL):getGL2) gamestate interfacestate (getWidth) (getHeight)))))
     ((init drawable)
         (let ((gl (javax.media.opengl.DebugGL2 ((drawable:getGL):getGL2))))
             ;(gl:glEnableClientState gl:GL_VERTEX_ARRAY)
@@ -553,7 +554,7 @@
         (glcanv:requestFocus)
         (set! anim (FPSAnimator glcanv 30))
         (anim:start)
-        (future (with-min-ms-per-iteration 10 (synchronized gamestate:eventloop-render-mutex (event-loop gamestate interfacestate))))
+        (future (with-min-ms-per-iteration 10 (synchronized gamestate:eventloop-render-mutex (print-exceptions (event-loop gamestate interfacestate)))))
     )
 )
 
