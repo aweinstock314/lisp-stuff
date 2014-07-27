@@ -168,6 +168,14 @@
     )
 )
 
+(define-macro (inplace-polybuffer-append! buffer poly)
+    (define-gensyms buf ind)
+    `(receive (,buf ,ind) (append-polygon-to-buffer (newDirectFloatBuffer 0) ,poly)
+        (set! ,buffer (cons ,buf ,buffer))
+        ,ind
+    )
+)
+
 (define-simple-class concatenated-buffer ()
     (buf::FloatBuffer)
     (starts::HashMap[integer integer] (HashMap)) ; identity hash of float buffer -> starting location in buf

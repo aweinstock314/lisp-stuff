@@ -2,13 +2,8 @@
 (require <asteroids_util_math>)
 (require <asteroids_util_opengl>)
 
-(define *polygons-buffer* '())
-(define (append-polygon-to-global-buffer poly::polygon)
-    (let-values (((buf ind) (append-polygon-to-buffer (newDirectFloatBuffer 0) poly)))
-        (set! *polygons-buffer* (cons buf *polygons-buffer*))
-        ind
-    )
-)
+(define *constant-buffer* '())
+(define (make-constant-polygon poly::polygon) (inplace-polybuffer-append! *constant-buffer* poly))
 
 ;; GUI constants
 (define-constant +screen-width+ 640)
@@ -29,7 +24,7 @@
 )
 
 (define-constant +background-intensity+ .5)
-(define-constant background (append-polygon-to-global-buffer (calc-poly
+(define-constant background (make-constant-polygon (calc-poly
     (/ tau 8) (constantly (sqrt (* 2 (square +logical-width+)))) 4
     (lambda (i) (case i
         ((0) (values +background-intensity+ +background-intensity+ 0))
@@ -39,9 +34,9 @@
     ))
 )))
 
-(define-constant white-bg (append-polygon-to-global-buffer (calc-poly 0 (constantly 20) 4 (constantly (values 1 1 1)))))
-(define-constant black-dot (append-polygon-to-global-buffer (calc-poly 0 (constantly .01) 10 (constantly (values 0 0 0)))))
-(define-constant blue-dot (append-polygon-to-global-buffer (calc-poly 0 (constantly .01) 10 (constantly (values 0 0 1)))))
+(define-constant white-bg (make-constant-polygon (calc-poly 0 (constantly 20) 4 (constantly (values 1 1 1)))))
+(define-constant black-dot (make-constant-polygon (calc-poly 0 (constantly .01) 10 (constantly (values 0 0 0)))))
+(define-constant blue-dot (make-constant-polygon (calc-poly 0 (constantly .01) 10 (constantly (values 0 0 1)))))
 
 (define-constant +score-fmtstr+ "Score: %s")
 (define-constant +lives-fmtstr+ "Lives: %s")
@@ -70,7 +65,7 @@
 (define-constant +shot-size+ .01)
 (define-constant +shot-momentum-factor+ 5)
 (define-constant +shot-duration+ (* 45 +cs-per-frame+))
-(define-constant +shot-vertidx+ (append-polygon-to-global-buffer (calc-poly 0 (constantly +shot-size+) 10 (constantly (apply values +shot-color+)))))
+(define-constant +shot-vertidx+ (make-constant-polygon (calc-poly 0 (constantly +shot-size+) 10 (constantly (apply values +shot-color+)))))
 
 (define-constant +centiseconds-between-shots+ (* 10 +cs-per-frame+))
 (define-constant +min-ship-speed+ (/ -0.09 +cs-per-frame+))
@@ -84,7 +79,7 @@
 (define-constant +initial-asteroids-count+ 5)
 (define-constant +asteroids-per-level+ 5)
 
-(define-constant +respawn-box-vertidx+ (append-polygon-to-global-buffer (calc-poly (/ tau 8) (constantly (sqrt 2)) 4 (constantly (values 0 .25 .25)))))
+(define-constant +respawn-box-vertidx+ (make-constant-polygon (calc-poly (/ tau 8) (constantly (sqrt 2)) 4 (constantly (values 0 .25 .25)))))
 (define-constant push-outside-respawn-safety-box (push-outside -1 -1 2 2))
 
 ; these have to do with input sensitivity, not sure if they belong here or in GUI constants section
@@ -120,9 +115,9 @@
     (size .1)
     (color '(1 .5 0))
     (shooting-cooldown::int 0)
-    ((*init*) (recalcVerts!) (set! rot (/ tau 4)))
+    ((*init* is::interface-state) (recalcVerts! is) (set! rot (/ tau 4)))
     (vertidx)
-    ((recalcVerts!) (set! vertidx (append-polygon-to-global-buffer (calc-poly 0 (lambda (i) (if (= i 0) (* 2 size) size)) 3 (constantly (apply values color)))))) ; isosceles triangle
+    ((recalcVerts! is::interface-state) (set! vertidx (is:add-ship-poly (calc-poly 0 (lambda (i) (if (= i 0) (* 2 size) size)) 3 (constantly (apply values color)))))) ; isosceles triangle
     ((rotate delta::double) (inc! rot delta))
     ((getVertidx) vertidx)
     ((updatePosition!)
@@ -151,9 +146,9 @@
     (vertidx #!null)
     (children::ArrayList[asteroid] #!null)
     (dx::double 0) (dy::double 0) ; deltas from center of generated polygon, for children
-    ((constructor-helper poly::polygon) access: 'private
-        (set! vertidx (append-polygon-to-global-buffer poly))
-        (set! children (ArrayList-map asteroid (divide-poly poly)))
+    ((constructor-helper is::interface-state poly::polygon) access: 'private
+        (set! vertidx (is:add-asteroid-poly poly))
+        (set! children (ArrayList-map (cut asteroid is <>) (divide-poly poly)))
         (receive (xs ys) (ArrayList-foldl
                 (lambda (acc v::vertex) (receive (xs ys) acc (values (cons v:x xs) (cons v:y ys))))
                 poly:verts
@@ -162,10 +157,10 @@
             (set!* (dx dy) ((apply average xs) (apply average ys)))
         )
     )
-    ((*init*)
-        (constructor-helper (calc-poly (random tau) (constantly size) (random-range 3 9) (constantly (apply values color))))
+    ((*init* is::interface-state)
+        (constructor-helper is (calc-poly (random tau) (constantly size) (random-range 3 9) (constantly (apply values color))))
     )
-    ((*init* poly::polygon) (constructor-helper poly))
+    ((*init* is::interface-state poly::polygon) (constructor-helper is poly))
 
     ((draw gl2 is) (drawPolygon gl2 is:cbuf x y rot vertidx))
     ((updatePosition!)
@@ -191,10 +186,15 @@
 )
 
 (define-simple-class game-state ()
+    ((*init* is::interface-state)
+        (set! interface is)
+        (set! player-ship (ship interface))
+    )
+    (interface::interface-state #!null)
+    (player-ship::ship #!null) ; change to array to support same-world multiplayer?
     (active-shots::ArrayList[shot] (ArrayList))
     (active-asteroids::ArrayList[asteroid] (ArrayList))
     (respawn-box-active #t)
-    (player-ship::ship (ship))
     (score +initial-score+)
     (lives +initial-lives+)
     (level +initial-level+)
@@ -206,7 +206,7 @@
     (eventloop-render-mutex (java.lang.Object))
 
     ((spawn-asteroids! amount::integer)
-        (pascal-for (i 0 amount 1) (active-asteroids:add (asteroid)))
+        (pascal-for (i 0 amount 1) (active-asteroids:add (asteroid interface)))
     )
     ((player-death!)
         (player-ship:resetPosition&Momentum!)
@@ -226,6 +226,7 @@
         (player-ship:resetPosition&Momentum!)
         (active-shots:clear)
         (set! respawn-box-active #t)
+        (set! interface:asteroids-polybuf '())
         (spawn-asteroids! (* level +asteroids-per-level+))
         (set! buffer-needs-reset #t)
     )
@@ -239,12 +240,14 @@
     (whole-area-dims::int[] #!null)
     (recent-mouse-obj-coords (values 0 0))
     (cbuf::concatenated-buffer)
+    (ships-polybuf '())
+    (asteroids-polybuf '())
+
+    ((add-ship-poly p::polygon) (inplace-polybuffer-append! ships-polybuf p))
+    ((add-asteroid-poly p::polygon) (inplace-polybuffer-append! asteroids-polybuf p))
 
     ((reset-polygons-buffer! gl2::GL2)
-;            (display '*polygons-buffer*) (newline)
-;            (display *polygons-buffer*) (newline)
-;            (display (map identity-hash *polygons-buffer*)) (newline)
-            (set! cbuf (concatenate-buffers (reverse *polygons-buffer*)))
+            (set! cbuf (concatenate-buffers (append *constant-buffer* ships-polybuf asteroids-polybuf)))
             (set-polygons-buffer gl2 cbuf)
             (set! shader-program (make-shader-program gl2 (file-as-string-constant "identityshader.vert") (file-as-string-constant "identityshader.frag")))
             (define pos-attrib ::int (gl2:glGetAttribLocation shader-program "position"))
@@ -475,8 +478,8 @@
 )
 
 (define-simple-class asteroids-panel (javax.swing.JPanel javax.media.opengl.GLEventListener java.awt.event.KeyListener java.awt.event.MouseListener java.awt.event.MouseMotionListener java.awt.event.MouseWheelListener)
-    (gamestate::game-state (game-state))
-    (interfacestate::interface-state (interface-state))
+    (gamestate::game-state)
+    (interfacestate::interface-state)
     ; GLEventListener
     ((display drawable) (synchronized gamestate:eventloop-render-mutex (print-exceptions (render ((drawable:getGL):getGL2) gamestate interfacestate (getWidth) (getHeight)))))
     ((init drawable)
@@ -537,6 +540,8 @@
     (glcanv::GLCanvas #!null)
     (anim::FPSAnimator #!null)
     ((*init* w::integer h::integer) #!void
+        (set! interfacestate (interface-state))
+        (set! gamestate (game-state interfacestate))
         (gamestate:spawn-asteroids! +initial-asteroids-count+)
         (setLayout #!null)
         (initialize-label (this) gamestate:scorelabel 0 0)
