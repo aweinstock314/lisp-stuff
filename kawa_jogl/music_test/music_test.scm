@@ -15,14 +15,24 @@
 (define-macro (emit a b c)
    `(invoke rec 'send (make-note ,a ,b ,c) -1)
 )
+
+(define (sweep lo hi step)
+    (let ((curstep step) (in-bounds? (within? lo hi)) (enforce-bounds (clamp lo hi)))
+        (lambda (x) (enforce-bounds (returning (tmp (+ x curstep))
+            (if (not (in-bounds? tmp)) (set! curstep (* -1 curstep)))
+        )))
+    )
+)
+
 (define instr 000)
 (define pitch 127)
-(with-min-ms-per-iteration 50
+(define pitchsweeper (sweep 30 70 4))
+
+(with-min-ms-per-iteration 250
     (emit (sm NOTE_OFF) pitch 0)
     (printf "instrument %s; pitch %s\n" instr pitch)
     (emit (sm PROGRAM_CHANGE) instr 0)
-    (inc! pitch 4)
-    (inplace! (wrap 40 60) pitch)
+    (inplace! pitchsweeper pitch)
     (inc! instr 7)
     (inplace! (wrap 0 127) instr)
     (emit (sm NOTE_ON) pitch #x7f)
