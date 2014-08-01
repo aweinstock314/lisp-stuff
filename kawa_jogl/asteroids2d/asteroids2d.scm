@@ -49,13 +49,17 @@
 (define-constant +initial-level+ 1)
 
 (define-constant +label-dimensions+ (java.awt.Dimension 128 32))
-(define-alias JFormattedTextField javax.swing.JFormattedTextField)
-(define (initialize-label c::java.awt.Container label::JFormattedTextField x y)
+(define-simple-class UnselectableTextField (javax.swing.JFormattedTextField)
+    ((processMouseEvent ev::java.awt.event.MouseEvent)::void access: 'protected
+        #!void
+    )
+)
+(define (initialize-label c::java.awt.Container label::UnselectableTextField x y)
     (label:setPreferredSize +label-dimensions+)
     (c:add label)
     (label:setBounds x y (+label-dimensions+:getWidth) (+label-dimensions+:getHeight))
 )
-(define (update-label label::JFormattedTextField fmt::String val::String)
+(define (update-label label::UnselectableTextField fmt::String val::String)
     (label:setValue (String:format fmt val))
 )
 
@@ -219,8 +223,8 @@
     (shp::ship)
     (score +initial-score+)
     (lives +initial-lives+)
-    (scorelabel (JFormattedTextField))
-    (liveslabel (JFormattedTextField))
+    (scorelabel (UnselectableTextField))
+    (liveslabel (UnselectableTextField))
     ((*init* s::ship) (set! shp s))
 )
 
@@ -250,7 +254,7 @@
     (active-shots::ArrayList[shot] (ArrayList))
     (active-asteroids::ArrayList[asteroid] (ArrayList))
     (level +initial-level+)
-    (levellabel (JFormattedTextField))
+    (levellabel (UnselectableTextField))
 
     (buffer-needs-reset #f)
     (eventloop-render-mutex (java.lang.Object))
