@@ -1,5 +1,5 @@
-(require <asteroids_util_general>)
-(require <asteroids_util_math>)
+(require <scheme_util_general>)
+(require <scheme_util_math>)
 (require 'list-lib)
 
 (with-all-forms-exported

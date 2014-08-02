@@ -29,6 +29,15 @@ structure to distribute dependencies (as opposed to
 "messier" solutions such as distributing seperate jars, or 
 manually flattening the dependencies into a single jar.)
 
+music_test:
+A demo that plays a simple sweeping tune with a background 
+drum pattern via the javax.sound.midi package.
+
 args_fold_test:
 A simple wrapper around the SRFI-37 "args-fold" command 
 that does command line processing.
+
+scheme_util:
+A bunch of functions and macros that were written in the 
+process of writing asteroids that seem to be useful in 
+general.
