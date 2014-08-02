@@ -2,12 +2,8 @@
 all: asteroids_util_opengl.class asteroids2d.class
 jar: asteroids2d_distribution.jar
 
-scheme_util_general.class: ../scheme_util/scheme_util_general.scm
-	cd ../scheme_util && make scheme_util_general.class
-	cp -t . ../scheme_util/scheme_util_general*.class
-scheme_util_math.class: ../scheme_util/scheme_util_math.scm
-	cd ../scheme_util && make scheme_util_math.class
-	cp -t . ../scheme_util/scheme_util_math*.class
+SCHEME_UTIL_PATH=../scheme_util
+include $(SCHEME_UTIL_PATH)/scheme_util_include.mk
 
 run:
 	java asteroids2d
