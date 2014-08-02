@@ -28,3 +28,7 @@ that should make it trivial to use a hierarchical jar
 structure to distribute dependencies (as opposed to 
 "messier" solutions such as distributing seperate jars, or 
 manually flattening the dependencies into a single jar.)
+
+args_fold_test:
+A simple wrapper around the SRFI-37 "args-fold" command 
+that does command line processing.
