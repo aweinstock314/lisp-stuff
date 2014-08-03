@@ -3,13 +3,31 @@
 
 ;(define (mapcan . args) (apply append (apply map args)))
 
-; Intended usage: (set-variables-from-cmdline (varname (flagname*) default)*)
+(define-macro (cxr-with-default path default)
+    ; TODO: unroll the loop at compile time
+    `(lambda (lst)
+        (if (pair? lst)
+            (fold (lambda (elem acc)
+                (if (not (pair? acc)) ,default
+                    (cond ((eqv? elem 'a) (car acc))
+                          ((eqv? elem 'd) (cdr acc))
+                          (else (error "element of path was not an a or d"))
+                    )
+                )
+            ) lst (reverse ',path))
+            ,default
+        )
+    )
+)
+
+; Intended usage: (set-variables-from-cmdline (varname (flagname*) default converter?)*)
 (define-macro (set-variables-from-cmdline immediates . optsets)
     (let* (
             (opt-g (gentemp)) (name-g (gentemp)) (arg-g (gentemp)) (seeds-g (gentemp))
             (varnames (map car optsets))
             (flagnames-es (map cadr optsets))
             (defaults (map caddr optsets))
+            (converters (map (cxr-with-default (a d d d) (lambda (y) y)) optsets))
             (immediate-flagnames-es (map car immediates))
             (immediate-bodies (map cdr immediates))
             (code-to-set-defaults (map (lambda (varname default) `(define ,varname ,default)) varnames defaults))

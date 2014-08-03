@@ -125,7 +125,7 @@
 
 (define-macro (print-exceptions . body)
     `(try-catch
-        ,@body
+        (begin ,@body)
         (e java.lang.Exception (invoke e 'printStackTrace) #f)
     )
 )
