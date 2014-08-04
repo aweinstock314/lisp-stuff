@@ -2,31 +2,59 @@
 (require <scheme_util_math>)
 (require <asteroids_util_opengl>)
 
-; consider getting more of the constants from the command line, possibly via args-fold?
 (define-constant +multiplayer-mode+ (member "--multiplayer" (command-line)))
 
 (define *constant-buffer* '())
 (define (make-constant-polygon poly::polygon) (inplace-polybuffer-append! *constant-buffer* poly))
 
-;; GUI constants
-(define-constant +screen-width+ 640)
-(define-constant +screen-height+ 480)
+(define *show-extra-debugging-views* #f)
+(define-constant +cs-per-frame+ (/ 100 30)) ; centiseconds
+(define-constant +score-fmtstr+ "Score: %s")
+(define-constant +lives-fmtstr+ "Lives: %s")
+(define-constant +level-fmtstr+ "Level: %s")
+
+(set-variables-from-cmdline (((#\h #\? "help") (svfc-display-all-options)))
+;; GUI settings
+(+screen-width+ 640 ("screen-width") Integer:parseInt)
+(+screen-height+ 480 ("screen-height") Integer:parseInt)
 
 ; the real values are double this, since these are used as plus/minus
-(define-constant +logical-width+ 4)
-(define-constant +logical-height+ 4)
-(define +viewport-width+ 3)
-(define +viewport-height+ 3)
+(+logical-width+ 4 ("arena-width") parse-double)
+(+logical-height+ 4 ("arena-height") parse-double)
+(+viewport-width+ 3 ())
+(+viewport-height+ 3 ())
 
-(define *show-extra-debugging-views* #f)
-(define +window-width+ (if +multiplayer-mode+ (* 2 +screen-width+) +screen-width+))
-(define +window-height+ (if *show-extra-debugging-views* (* 1.5 +screen-height+) +screen-height+))
+(+background-intensity+ .5 ("background-intensity") () parse-double)
+(+initial-score+ 0 ("initial-score") () Integer:parseInt)
+(+initial-lives+ 3 ("initial-lives") () Integer:parseInt)
+(+initial-level+ 1 ("initial-level") () Integer:parseInt)
 
-(define-simple-class drawer () interface: #t
-    ((draw gl2::GL2 is::interface-state) #!abstract)
-)
+;; Gameplay settings
 
-(define-constant +background-intensity+ .5)
+(+shot-color+ '(1 1 1) ())
+(+shot-speed+ (/ .2 +cs-per-frame+) ("shot-speed") parse-double)
+(+shot-size+ .01 ("shot-size") parse-double)
+(+shot-momentum-factor+ 2.5 ("shot-momentum") parse-double)
+(+shot-duration+ (* (/ 45 2) +cs-per-frame+) ("shot-duration") parse-double)
+(+shot-collision-granularity+ 10 () Integer:parseInt)
+
+(+centiseconds-between-shots+ (* 10 +cs-per-frame+) ("shot-delay") parse-double)
+(+min-ship-speed+ (/ -0.09 +cs-per-frame+) ("min-ship-speed") parse-double)
+(+max-ship-speed+ (/ 0.10 +cs-per-frame+) ("max-ship-speed") parse-double)
+
+(+min-asteroid-size+ .1 ("min-asteroid-size") parse-double)
+(+max-asteroid-size+ .5 ("max-asteroid-size") parse-double)
+(+min-asteroid-ivel+ (/ .01 +cs-per-frame+) ("min-initial-asteroid-speed") parse-double)
+(+max-asteroid-ivel+ (/ .05 +cs-per-frame+) ("max-initial-asteroid-speed") parse-double)
+(+asteroid-speed-multiplier+ 1 ("asteroid-speed-multiplier") parse-double)
+(+asteroids-per-level+ 5 ("asteroids-per-level") Integer:parseInt)
+
+; these have to do with input sensitivity, not sure if they belong here or in GUI constants section
+(+rotation-delta+ (/ (/ tau 64) +cs-per-frame+) ("rotation-sensitivity") parse-double)
+(+velocity-delta+ (/ .01 (* 2 +cs-per-frame+)) ("acceleration-sensitivity") parse-double)
+
+) ; end of set-variables-from-cmdline
+
 (define-constant background (make-constant-polygon (calc-poly
     (/ tau 8) (constantly (sqrt (* 2 (square +logical-width+)))) 4
     (lambda (i) (case i
@@ -36,17 +64,14 @@
         ((3) (values 0 +background-intensity+ 0))
     ))
 )))
-
+(define-constant +respawn-box-vertidx+ (make-constant-polygon (calc-poly (/ tau 8) (constantly (sqrt 2)) 4 (constantly (values 0 .25 .25)))))
 (define-constant white-bg (make-constant-polygon (calc-poly 0 (constantly 20) 4 (constantly (values 1 1 1)))))
 (define-constant black-dot (make-constant-polygon (calc-poly 0 (constantly .01) 10 (constantly (values 0 0 0)))))
 (define-constant blue-dot (make-constant-polygon (calc-poly 0 (constantly .01) 10 (constantly (values 0 0 1)))))
+(define-constant +shot-vertidx+ (make-constant-polygon (calc-poly 0 (constantly +shot-size+) 10 (constantly (apply values +shot-color+)))))
 
-(define-constant +score-fmtstr+ "Score: %s")
-(define-constant +lives-fmtstr+ "Lives: %s")
-(define-constant +level-fmtstr+ "Level: %s")
-(define-constant +initial-score+ 0)
-(define-constant +initial-lives+ 3)
-(define-constant +initial-level+ 1)
+(define +window-width+ (if +multiplayer-mode+ (* 2 +screen-width+) +screen-width+))
+(define +window-height+ (if *show-extra-debugging-views* (* 1.5 +screen-height+) +screen-height+))
 
 (define-constant +label-dimensions+ (java.awt.Dimension 128 32))
 (define-simple-class UnselectableTextField (javax.swing.JFormattedTextField)
@@ -63,36 +88,13 @@
     (label:setValue (String:format fmt val))
 )
 
-;; Game constants
-(define-constant +cs-per-frame+ (/ 100 30)) ; centiseconds
 
-(define-constant +shot-color+ '(1 1 1))
-(define-constant +shot-speed+ (/ .2 +cs-per-frame+))
-(define-constant +shot-size+ .01)
-(define-constant +shot-momentum-factor+ 2.5)
-(define-constant +shot-duration+ (* (/ 45 2) +cs-per-frame+))
-(define-constant +shot-vertidx+ (make-constant-polygon (calc-poly 0 (constantly +shot-size+) 10 (constantly (apply values +shot-color+)))))
-(define-constant +shot-collision-granularity+ 10)
-
-(define-constant +centiseconds-between-shots+ (* 10 +cs-per-frame+))
-(define-constant +min-ship-speed+ (/ -0.09 +cs-per-frame+))
-(define-constant +max-ship-speed+ (/ 0.10 +cs-per-frame+))
-
-(define-constant +min-asteroid-size+ .1)
-(define-constant +max-asteroid-size+ .5)
-(define-constant +min-asteroid-ivel+ (/ .01 +cs-per-frame+))
-(define-constant +max-asteroid-ivel+ (/ .05 +cs-per-frame+))
-(define +asteroid-speed-multiplier+ 1)
-(define-constant +initial-asteroids-count+ 5)
-(define-constant +asteroids-per-level+ 5)
-
-(define-constant +respawn-box-vertidx+ (make-constant-polygon (calc-poly (/ tau 8) (constantly (sqrt 2)) 4 (constantly (values 0 .25 .25)))))
-
-; these have to do with input sensitivity, not sure if they belong here or in GUI constants section
-(define-constant +rotation-delta+ (/ (/ tau 64) +cs-per-frame+))
-(define-constant +velocity-delta+ (/ .01 (* 2 +cs-per-frame+)))
 
 ;; Game objects
+(define-simple-class drawer () interface: #t
+    ((draw gl2::GL2 is::interface-state) #!abstract)
+)
+
 (define-simple-class shot (drawer)
     (x::double 0) (y::double 0)
     (rot::double 0)
@@ -617,7 +619,7 @@
     ((*init* w::integer h::integer) #!void
         (set! interfacestate (interface-state))
         (set! gamestate (game-state interfacestate))
-        (gamestate:spawn-asteroids! +initial-asteroids-count+)
+        (gamestate:spawn-asteroids! +asteroids-per-level+)
         (setLayout #!null)
         (initialize-label (this) (invoke gamestate:players 'get 1):scorelabel 0 0) ; the "'get 1" is a hack, fix later
         (initialize-label (this) (invoke gamestate:players 'get 1):liveslabel (- +screen-width+ (+label-dimensions+:getWidth)) 0)

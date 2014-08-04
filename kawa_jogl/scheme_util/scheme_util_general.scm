@@ -28,6 +28,7 @@
 (define printf java.lang.System:out:printf)
 (define-alias ArrayList java.util.ArrayList)
 (define-alias Integer java.lang.Integer)
+(define-alias Double java.lang.Double)
 
 (define-macro (thunk . body) `(lambda (. ,(gentemp)) ,@body))
 ;(define-macro (mvlist expr) `(call-with-values (thunk ,expr) list))
@@ -212,9 +213,9 @@
                 (printf "Settings:\n")
                 ,@(map (lambda (varname default flagnames)
                     `(begin
-                        (printf "%s (default: \"%s\") : " ',varname ,default)
+                        (printf "%s\t\t(default: %s)\t\t(settable by: " ',varname ,default)
                         ,@(map (lambda (flag) `(printf "%s, " ,(displayable-flagname flag))) flagnames)
-                        (printf "\n")
+                        (printf ")\n")
                     )
                 ) varnames defaults flagnames-es)
             ))
@@ -275,4 +276,4 @@
 
 (define identity-hash java.lang.System:identityHashCode)
 
-) ; of end with-all-forms-exported
+) ; end of with-all-forms-exported

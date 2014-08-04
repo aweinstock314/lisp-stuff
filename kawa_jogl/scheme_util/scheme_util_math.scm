@@ -20,6 +20,8 @@
 (define (average . nums) (/ (fold + 0 nums) (length nums)))
 (define (random x)::float (* x (java.lang.Math:random)))
 (define (random-range lo hi)::float (+ lo (* (- hi lo) (java.lang.Math:random))))
+(define (box-double x::java.lang.Double)::gnu.math.DFloNum (gnu.math.DFloNum:asDFloNumOrNull x))
+(define (parse-double x::String)::gnu.math.DFloNum (box-double (Double:parseDouble x)))
 
 (define (apply-polar-movement x y mag rot) (values
     (+ x (* mag (cos rot)))
