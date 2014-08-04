@@ -20,13 +20,13 @@
     )
 )
 
-; Intended usage: (set-variables-from-cmdline (varname (flagname*) default converter?)*)
+; Intended usage: (set-variables-from-cmdline (varname default (flagname*) converter?)*)
 (define-macro (set-variables-from-cmdline immediates . optsets)
     (let* (
             (opt-g (gentemp)) (name-g (gentemp)) (arg-g (gentemp)) (seeds-g (gentemp))
             (varnames (map car optsets))
-            (flagnames-es (map cadr optsets))
-            (defaults (map caddr optsets))
+            (defaults (map cadr optsets))
+            (flagnames-es (map caddr optsets))
             (converters (map (cxr-with-default (a d d d) `(lambda (y) y)) optsets))
             (immediate-flagnames-es (map car immediates))
             (immediate-bodies (map cdr immediates))
@@ -85,8 +85,8 @@
         ((#\h #\? "help") (display "This is a help message.") (newline) (svfc-display-all-options))
         ((#\v "version") (display "Version number epsilon.") (newline))
     )
-    (+message+ (#\m "message") "Hello, world!")
-    (+number+ (#\n "number") 6.28 java.lang.Integer:parseInt)
+    (+message+ "Hello, world!" (#\m "message"))
+    (+number+ 6.28 (#\n "number") java.lang.Double:parseDouble)
 )
 
 (display "+message+ is \'") (write +message+) (display "\'.") (newline)
