@@ -27,14 +27,19 @@
             (varnames (map car optsets))
             (flagnames-es (map cadr optsets))
             (defaults (map caddr optsets))
-            (converters (map (cxr-with-default (a d d d) (lambda (y) y)) optsets))
+            (converters (map (cxr-with-default (a d d d) `(lambda (y) y)) optsets))
             (immediate-flagnames-es (map car immediates))
             (immediate-bodies (map cdr immediates))
             (code-to-set-defaults (map (lambda (varname default) `(define ,varname ,default)) varnames defaults))
             (setter-options (map
-                (lambda (varname flagnames)
-                    `(option ',flagnames #t #f (lambda (,opt-g ,name-g ,arg-g . ,seeds-g) (set! ,varname ,arg-g)))
-                ) varnames flagnames-es
+                (lambda (varname flagnames converter)
+                    `(option ',flagnames #t #f
+                        (lambda (,opt-g ,name-g ,arg-g . ,seeds-g)
+                            (try-catch (set! ,varname (,converter ,arg-g))
+                            (e java.lang.Exception #!void))
+                        )
+                    )
+                ) varnames flagnames-es converters
             ))
             (immediate-options (map
                 (lambda (flagnames body)
@@ -81,7 +86,7 @@
         ((#\v "version") (display "Version number epsilon.") (newline))
     )
     (+message+ (#\m "message") "Hello, world!")
-    (+number+ (#\n "number") 6.28)
+    (+number+ (#\n "number") 6.28 java.lang.Integer:parseInt)
 )
 
 (display "+message+ is \'") (write +message+) (display "\'.") (newline)
