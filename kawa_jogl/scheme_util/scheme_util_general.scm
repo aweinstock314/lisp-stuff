@@ -212,8 +212,8 @@
                 ,@(mapcan (lambda (flagnames) (append (map (lambda (flag) `(printf "%s, " ,(displayable-flagname flag))) flagnames) `((printf "\n")))) immediate-flagnames-es)
                 (printf "Settings:\n")
                 ,@(map (lambda (varname default flagnames)
-                    `(begin
-                        (printf "%s\t\t(default: %s)\t\t(settable by: " ',varname ,default)
+                    `(when (not (null? ',flagnames))
+                        (printf "%s\t(default: %s)\t(settable by: " ',varname ,default)
                         ,@(map (lambda (flag) `(printf "%s, " ,(displayable-flagname flag))) flagnames)
                         (printf ")\n")
                     )
