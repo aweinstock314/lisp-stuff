@@ -1,0 +1,52 @@
+(require <scheme_util_general>)
+(require <scheme_util_math>)
+
+(define-constant window-size 100)
+
+(define synth::javax.sound.midi.Synthesizer (javax.sound.midi.MidiSystem:getSynthesizer))
+(synth:open)
+
+(define-macro (with-channel synthesizer name num . body)
+    `(let ((,name :: javax.sound.midi.MidiChannel ((invoke ,synthesizer 'getChannels) ,num)))
+        ,@body
+    )
+)
+
+(define-alias HashSet java.util.HashSet)
+(define-simple-class keyboard-panel (javax.swing.JPanel java.awt.event.KeyListener)
+    (channel::javax.sound.midi.MidiChannel)
+    (currently-held-keys::HashSet[integer] (HashSet))
+    ((keyPressed ev)
+        (printf "Pressed: %s\n" (ev:getKeyCode))
+        (currently-held-keys:add (ev:getKeyCode))
+        (if (not (equal? channel #!null)) (channel:noteOn (ev:getKeyCode) #x7f))
+    )
+    ((keyReleased ev)
+        (printf "Released: %s\n" (ev:getKeyCode))
+        (currently-held-keys:remove (ev:getKeyCode))
+        (if (not (equal? channel #!null)) (channel:noteOff (ev:getKeyCode) #x7f))
+    )
+    ((keyTyped ev) #!void)
+)
+
+(define jf (javax.swing.JFrame))
+(define kp (keyboard-panel))
+(jf:addKeyListener kp)
+(kp:setBounds 0 0 window-size window-size)
+(jf:setSize window-size window-size)
+(jf:setResizable #f)
+(jf:setDefaultCloseOperation javax.swing.JFrame:EXIT_ON_CLOSE)
+(jf:setLayout #!null)
+(jf:add kp)
+(jf:setVisible #t)
+(jf:requestFocus)
+(kp:repaint)
+(with-channel synth ch 0 (set! kp:channel ch))
+
+;(with-min-ms-per-iteration 500
+;    (java-iterate kp:currently-held-keys (key integer)
+;        (when (invoke kp:currently-held-keys 'contains key)(write key) (newline))
+;    )
+;    (display "-----") (newline)
+;)
+
