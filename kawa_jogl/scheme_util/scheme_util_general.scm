@@ -193,7 +193,7 @@
             ))
             (immediate-options (map
                 (lambda (flagnames body)
-                    `(option ',flagnames #f #f (lambda (,opt-g ,name-g ,arg-g . ,seeds-g) ,@body (invoke-static java.lang.System 'exit 0)))
+                    `(option ',flagnames #f #f (lambda (,opt-g ,name-g ,arg-g . ,seeds-g) ,@body #;(invoke-static java.lang.System 'exit 0)))
                 ) immediate-flagnames-es immediate-bodies
             ))
             (unrecognized-option-proc `(lambda (opt name arg . seeds) (display "Warning: unrecognized option \"") (display name) (display "\".") (newline)))

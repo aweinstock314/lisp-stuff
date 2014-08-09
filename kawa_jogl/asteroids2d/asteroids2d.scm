@@ -2,7 +2,7 @@
 (require <scheme_util_math>)
 (require <asteroids_util_opengl>)
 
-(define-constant +multiplayer-mode+ (member "--multiplayer" (command-line)))
+(define +multiplayer-mode+ #f)
 
 (define *constant-buffer* '())
 (define (make-constant-polygon poly::polygon) (inplace-polybuffer-append! *constant-buffer* poly))
@@ -13,7 +13,11 @@
 (define-constant +lives-fmtstr+ "Lives: %s")
 (define-constant +level-fmtstr+ "Level: %s")
 
-(set-variables-from-cmdline (((#\h #\? "help") (svfc-display-all-options)))
+(set-variables-from-cmdline 
+(
+    ((#\h #\? "help") (svfc-display-all-options) (java.lang.System:exit 0))
+    (("multiplayer") (set! +multiplayer-mode+ #t))
+)
 ;; GUI settings
 (+screen-width+ 640 ("screen-width") Integer:parseInt)
 (+screen-height+ 480 ("screen-height") Integer:parseInt)
