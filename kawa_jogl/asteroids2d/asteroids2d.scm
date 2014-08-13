@@ -59,8 +59,10 @@
 
 ) ; end of set-variables-from-cmdline
 
-(define-constant background (make-constant-polygon (calc-poly
-    (/ tau 8) (constantly (sqrt (* 2 (square +logical-width+)))) 4
+(define-constant background (make-constant-polygon
+;(calc-poly
+;    (/ tau 8) (constantly (sqrt (* 2 (square +logical-width+)))) 4
+(make-rectangle +logical-width+ +logical-height+
     (lambda (i) (case i
         ((0) (values +background-intensity+ +background-intensity+ 0))
         ((1) (values 0 +background-intensity+ +background-intensity+))
