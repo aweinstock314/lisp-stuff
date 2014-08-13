@@ -1,5 +1,13 @@
 (require 'list-lib)
 
+; hack to get an effect similar to CL's (eval-when (:COMPILE-TOPLEVEL))
+(define-macro (shortened-java-name)
+    `(lambda (fullsym)
+        (define str (symbol->string fullsym))
+        (string->symbol (str:substring (+ 1 (str:lastIndexOf "."))))
+    )
+)
+
 (define-macro (with-all-forms-exported . forms)
     (letrec ((helper (lambda (form acc)
                 (if (not (list? form)) acc
@@ -12,6 +20,7 @@
                             (else (error "Unexpected type as the second element of a define form"))
                         ) acc)
                     )
+                    ((java-import) (append (map (shortened-java-name) (cdr form)) acc))
                     (else acc)
                 ))
             )))
@@ -25,10 +34,14 @@
 
 (with-all-forms-exported
 
+(define-macro (java-import . classnames)
+    `(begin ,@(map (lambda (classname)
+        `(define-alias ,((shortened-java-name) classname) ,classname)
+    ) classnames))
+)
+
 (define printf java.lang.System:out:printf)
-(define-alias ArrayList java.util.ArrayList)
-(define-alias Integer java.lang.Integer)
-(define-alias Double java.lang.Double)
+(java-import java.util.ArrayList java.lang.Integer java.lang.Double)
 
 (define-macro (thunk . body) `(lambda (. ,(gentemp)) ,@body))
 ;(define-macro (mvlist expr) `(call-with-values (thunk ,expr) list))
