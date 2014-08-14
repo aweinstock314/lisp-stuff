@@ -3,7 +3,7 @@
 
 (with-all-forms-exported
 
-(define-alias Number java.lang.Number)
+(java-import java.lang.Number)
 
 (define (clamp lo hi) (lambda (val) (max lo (min hi val))))
 (define (wrap lo hi) (lambda (val)

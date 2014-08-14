@@ -4,12 +4,14 @@
 
 (with-all-forms-exported
 
-(define-alias GL2 javax.media.opengl.GL2)
-(define-alias GLCanvas javax.media.opengl.awt.GLCanvas)
-(define-alias FPSAnimator com.jogamp.opengl.util.FPSAnimator)
-(define-alias KeyEvent java.awt.event.KeyEvent)
-(define-alias FloatBuffer java.nio.FloatBuffer)
-(define-alias HashMap java.util.HashMap)
+(java-import
+    javax.media.opengl.GL2
+    javax.media.opengl.awt.GLCanvas
+    com.jogamp.opengl.util.FPSAnimator
+    java.awt.event.KeyEvent
+    java.nio.FloatBuffer
+    java.util.HashMap
+)
 (define-constant newDirectFloatBuffer com.jogamp.common.nio.Buffers:newDirectFloatBuffer)
 
 (define-simple-class vertex ()
