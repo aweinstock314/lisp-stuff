@@ -3,6 +3,10 @@
 
 (define-constant window-size 100)
 
+(set-variables-from-cmdline ()
+    (+metronome-tempo+ -1 (#\m "metronome") Integer:parseInt)
+)
+
 (define synth::javax.sound.midi.Synthesizer (javax.sound.midi.MidiSystem:getSynthesizer))
 (synth:open)
 
@@ -61,6 +65,25 @@
         (channel:noteOff (ev:getKeyCode) #x7f)
     )
     ((keyTyped ev) #!void)
+)
+
+(define (sweep lo hi step)
+    (let ((curstep step) (in-bounds? (within? lo hi)) (enforce-bounds (clamp lo hi)))
+        (lambda (x) (enforce-bounds (returning (tmp (+ x curstep))
+            (if (not (in-bounds? tmp)) (set! curstep (* -1 curstep)))
+        )))
+    )
+)
+(define metronome-note 0)
+(define metronome-sweeper (sweep 35 38 100))
+(when (> +metronome-tempo+ 0)
+    (future (with-channel synth ch 9
+        (with-min-ms-per-iteration +metronome-tempo+
+            (ch:noteOff metronome-note)
+            (inplace! metronome-sweeper metronome-note)
+            (ch:noteOn metronome-note #x7f)
+        )
+    ))
 )
 
 (define jf (javax.swing.JFrame))
