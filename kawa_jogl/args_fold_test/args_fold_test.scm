@@ -5,8 +5,8 @@
 
 (set-variables-from-cmdline
     (
-        ((#\h #\? "help") (display "This is a help message.") (newline) (svfc-display-all-options))
-        ((#\v "version") (display "Version number epsilon.") (newline))
+        ((#\h #\? "help") (display "This is a help message.") (newline) (svfc-display-all-options) (java.lang.System:exit 0))
+        ((#\v "version") (display "Version number epsilon.") (newline) (java.lang.System:exit 0))
     )
     (+message+ "Hello, world!" (#\m "message"))
     (+number+ 6.28 (#\n "number") java.lang.Double:parseDouble)
