@@ -44,8 +44,8 @@
 ;anaphoric progn, named similarly to Paul Graham's aand, alambda, etc...
 ;executes a series of statements, binding the symbol 'it' to the value of the previous, and returns the value of the last
 (defmacro aprogn (&rest body)
-	`(let ((it nil))
-		,@(mapcar (lambda (stmt) `(setf it ,stmt)) body)
-	)
+    `(let* ,(mapcar (lambda (stmt) `(it ,stmt)) body)
+        it
+    )
 )
 ;(aprogn 1 (sin it) (cos it)) is equivalent to the above example with ->
