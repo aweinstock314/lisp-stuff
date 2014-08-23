@@ -167,21 +167,26 @@
 (define-macro (file-as-string-constant filename) (slurp-file filename))
 
 (define-macro (cxr-with-default path default)
-    ; TODO: unroll the loop at compile time
-    `(lambda (lst)
-        (if (pair? lst)
-            (fold (lambda (elem acc)
-                (if (not (pair? acc)) ,default
-                    (cond ((eqv? elem 'a) (car acc))
-                          ((eqv? elem 'd) (cdr acc))
-                          (else (error "element of path was not an a or d"))
-                    )
-                )
-            ) lst (reverse ',path))
-            ,default
+    (define (make-accessor sym)
+        (cond ((eqv? sym 'a) 'car)
+              ((eqv? sym 'd) 'cdr)
+              (else (error "syment of path was not an a or d"))
         )
     )
+    (define (step-expander path-remainder)
+        (if (null? path-remainder)
+            `(lambda (x) x)
+            `(lambda (lst)
+                (if (pair? lst)
+                    (,(step-expander (cdr path-remainder)) (,(make-accessor (car path-remainder)) lst))
+                    ,default
+                )
+            )
+        )
+    )
+    (step-expander (reverse path))
 )
+
 
 ; Intended usage: (set-variables-from-cmdline (varname default (flagname*) converter?)*)
 (define (set-variables-from-cmdline-aux immediates . optsets)
