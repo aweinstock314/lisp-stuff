@@ -10,14 +10,6 @@
     )
 )
 
-(define (sweep lo hi step)
-    (let ((curstep step) (in-bounds? (within? lo hi)) (enforce-bounds (clamp lo hi)))
-        (lambda (x) (enforce-bounds (returning (tmp (+ x curstep))
-            (if (not (in-bounds? tmp)) (set! curstep (* -1 curstep)))
-        )))
-    )
-)
-
 (pascal-for (i 0 3 1) (future (begin
     (define pitch 127)
     (define pitchsweeper (sweep 30 70 4))

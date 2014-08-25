@@ -14,6 +14,14 @@
 ))
 (define (within? lo hi) (lambda (val::Number)::boolean (<= lo val hi)))
 
+(define (sweep lo hi step)
+    (let ((curstep step) (in-bounds? (within? lo hi)) (enforce-bounds (clamp lo hi)))
+        (lambda (x) (enforce-bounds (returning (tmp (+ x curstep))
+            (if (not (in-bounds? tmp)) (set! curstep (* -1 curstep)))
+        )))
+    )
+)
+
 (define tau (* 8 (atan 1)))
 (define atan2 java.lang.Math:atan2)
 (define (rad->deg r) (/ (* r 360) tau))

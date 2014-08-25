@@ -3,7 +3,8 @@
 
 (define-constant window-size 100)
 
-(set-variables-from-cmdline ()
+(set-variables-from-cmdline
+    ( ((#\h "help") (svfc-display-all-options) (java.lang.System:exit 0)) )
     (+metronome-tempo+ -1 (#\m "metronome") Integer:parseInt)
 )
 
@@ -67,13 +68,6 @@
     ((keyTyped ev) #!void)
 )
 
-(define (sweep lo hi step)
-    (let ((curstep step) (in-bounds? (within? lo hi)) (enforce-bounds (clamp lo hi)))
-        (lambda (x) (enforce-bounds (returning (tmp (+ x curstep))
-            (if (not (in-bounds? tmp)) (set! curstep (* -1 curstep)))
-        )))
-    )
-)
 (define metronome-note 0)
 (define metronome-sweeper (sweep 35 38 100))
 (when (> +metronome-tempo+ 0)
