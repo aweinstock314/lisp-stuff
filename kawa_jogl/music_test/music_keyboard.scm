@@ -49,21 +49,45 @@
     ((keyTyped ev) #!void)
 )
 
+(define-macro (make-inorder-keymap startval delta #!rest (keys::symbol[]))
+    `(returning (keymap (HashMap))
+        ,@(accumulate-range (i 0 keys:length 1)
+            `(invoke keymap 'put
+                ,(static-field java.awt.event.KeyEvent
+                    (string->symbol (String:format "VK_%s" (symbol->string (keys i))))
+                )
+                ,(+ (* i delta) startval)
+            )
+        )
+    )
+)
+
 (define-simple-class keyboard-panel (javax.swing.JPanel java.awt.event.KeyListener)
     (channel::javax.sound.midi.MidiChannel)
     (currently-held-keys::HashSet (HashSet))
+    (notes-table::HashMap;[Integer Integer]
+        (make-inorder-keymap 40 2
+            Z X C V B N M
+            A S D F G H J K L
+            Q W E R T Y U I O P
+        )
+    )
     ((*init* syn::javax.sound.midi.Synthesizer)
         (with-channel syn ch 0 (set! channel ch))
     )
     ((keyPressed ev)
         (printf "Pressed: %s, %d\n" (ev:getKeyCode) (get-time))
         (currently-held-keys:add (ev:getKeyCode))
-        (channel:noteOn (ev:getKeyCode) #x7f)
+        (aif/nn (notes-table:get (ev:getKeyCode))
+            (channel:noteOn it #x7f)
+        )
     )
     ((keyReleased ev)
         (printf "Released: %s, %d\n" (ev:getKeyCode) (get-time))
         (currently-held-keys:remove (ev:getKeyCode))
-        (channel:noteOff (ev:getKeyCode) #x7f)
+        (aif/nn (notes-table:get (ev:getKeyCode))
+            (channel:noteOff it #x7f)
+        )
     )
     ((keyTyped ev) #!void)
 )
