@@ -50,14 +50,19 @@
 )
 
 (define-macro (make-inorder-keymap startval delta #!rest (keys::symbol[]))
+    (define (sym->keycode sym::symbol)
+        (define symname (symbol->string sym))
+        (define fieldname
+            (if (= (symname:length) 1)
+                (String:format "VK_%s" symname)
+                symname
+            )
+        )
+        (static-field java.awt.event.KeyEvent (string->symbol fieldname))
+    )
     `(returning (keymap (HashMap))
         ,@(accumulate-range (i 0 keys:length 1)
-            `(invoke keymap 'put
-                ,(static-field java.awt.event.KeyEvent
-                    (string->symbol (String:format "VK_%s" (symbol->string (keys i))))
-                )
-                ,(+ (* i delta) startval)
-            )
+            `(invoke keymap 'put ,(sym->keycode (keys i)) ,(+ (* i delta) startval))
         )
     )
 )
@@ -67,9 +72,9 @@
     (currently-held-keys::HashSet (HashSet))
     (notes-table::HashMap;[Integer Integer]
         (make-inorder-keymap 40 2
-            Z X C V B N M
-            A S D F G H J K L
-            Q W E R T Y U I O P
+            Z X C V B N M VK_COMMA VK_PERIOD VK_SLASH
+            A S D F G H J K L VK_SEMICOLON VK_QUOTE
+            Q W E R T Y U I O P VK_OPEN_BRACKET VK_CLOSE_BRACKET
         )
     )
     ((*init* syn::javax.sound.midi.Synthesizer)
