@@ -49,20 +49,41 @@
     ((keyTyped ev) #!void)
 )
 
-(define-macro (make-inorder-keymap startval delta #!rest (keys::symbol[]))
-    (define (sym->keycode sym::symbol)
-        (define symname (symbol->string sym))
+(define-macro (typecase varname . cases)
+    (define-gensyms tmp)
+    (define (typecase-expander subform)
+        (define typename (car subform))
+        (define body (cdr subform))
+        `((instance? ,tmp ,typename)
+            (let ((,varname (as ,typename ,tmp))) ,@body)
+        )
+    )
+    `(let ((,tmp ,varname))
+        (cond ,@(map typecase-expander cases)
+              (error "Unhandled type in typecase.")
+        )
+    )
+)
+
+(define-macro (make-inorder-keymap startval delta #!rest (keys::Object[]))
+    (define (sym->keycode sym::symbol) (str->keycode (symbol->string sym)))
+    (define (str->keycode str::String)
         (define fieldname
-            (if (= (symname:length) 1)
-                (String:format "VK_%s" symname)
-                symname
+            (if (= (str:length) 1)
+                (String:format "VK_%s" str)
+                str
             )
         )
         (static-field java.awt.event.KeyEvent (string->symbol fieldname))
     )
     `(returning (keymap (HashMap))
         ,@(accumulate-range (i 0 keys:length 1)
-            `(invoke keymap 'put ,(sym->keycode (keys i)) ,(+ (* i delta) startval))
+            (define key (keys i))
+            (define val (+ (* i delta) startval))
+            (typecase key
+                (symbol `(invoke keymap 'put ,(sym->keycode key) ,val))
+                (integer `(invoke keymap 'put ,(str->keycode key) ,val))
+            )
         )
     )
 )
@@ -71,10 +92,11 @@
     (channel::javax.sound.midi.MidiChannel)
     (currently-held-keys::HashSet (HashSet))
     (notes-table::HashMap;[Integer Integer]
-        (make-inorder-keymap 40 2
+        (make-inorder-keymap 40 1
             Z X C V B N M VK_COMMA VK_PERIOD VK_SLASH
             A S D F G H J K L VK_SEMICOLON VK_QUOTE
             Q W E R T Y U I O P VK_OPEN_BRACKET VK_CLOSE_BRACKET
+            1 2 3 4 5 6 7 8 9 0 VK_MINUS VK_EQUALS
         )
     )
     ((*init* syn::javax.sound.midi.Synthesizer)
