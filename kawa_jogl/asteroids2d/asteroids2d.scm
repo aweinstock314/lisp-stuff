@@ -185,7 +185,6 @@
     (rot::double (random tau))
     (velocity::double (random-range +min-asteroid-ivel+ +max-asteroid-ivel+))
     (size (random-range +min-asteroid-size+ +max-asteroid-size+))
-    (color (list (random-range .25 .65) 0 0))
     (vertidx #!null)
     (children::ArrayList[asteroid] #!null)
     (dx::double 0) (dy::double 0) ; deltas from center of generated polygon, for children
@@ -201,7 +200,7 @@
         )
     )
     ((*init* is::interface-state)
-        (constructor-helper is (calc-poly (random tau) (constantly size) (random-range 3 9) (constantly (apply values color))))
+        (constructor-helper is (calc-poly (random tau) (constantly size) (random-range 3 9) (thunk (values (random-range .25 .65) 0 0))))
     )
     ((*init* is::interface-state poly::polygon) (constructor-helper is poly))
 
