@@ -187,6 +187,15 @@
     (step-expander (reverse path))
 )
 
+; less general than CL's, due to not taking more than one list
+(define (maplist f lst)
+    (with-list-collector col
+        (do ((l lst (cdr l)))
+            ((null? l) '())
+            (col (f l))
+        )
+    )
+)
 
 ; Intended usage: (set-variables-from-cmdline (varname default (flagname*) converter?)*)
 (define (set-variables-from-cmdline-aux immediates . optsets)
@@ -232,7 +241,11 @@
                 ,@(map (lambda (varname default flagnames)
                     `(when (not (null? ',flagnames))
                         (printf "%s\t(default: %s)\t(settable by: " ',varname ,default)
-                        ,@(map (lambda (flag) `(printf "%s, " ,(displayable-flagname flag))) flagnames)
+                        ,@(maplist (lambda (flags)
+                            (let ((flag (car flags)) (next? (not (null? (cdr flags)))))
+                                `(printf "%s%s" ,(displayable-flagname flag) ,(if next? ", " ""))
+                            )
+                        ) flagnames)
                         (printf ")\n")
                     )
                 ) varnames defaults flagnames-es)
