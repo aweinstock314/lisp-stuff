@@ -1,5 +1,6 @@
 (require <scheme_util_general>)
 (require <scheme_util_math>)
+(require <scheme_util_networking>)
 
 #|
 Sample usage:
@@ -16,28 +17,6 @@ java keypress_sender -p 8100 -h localhost
     (*host-name* "localhost" (#\h "host"))
 )
 
-(java-import java.net.Socket java.io.OutputStream java.nio.ByteBuffer)
-
-(define-simple-class TCPKeyboardSender (java.awt.event.KeyListener)
-    (PRESSED::byte allocation: 'static 0)
-    (RELEASED::byte allocation: 'static 1)
-    (sock::Socket)
-    (out::OutputStream)
-    ((*init* port::integer host::String)
-        (set! sock (Socket host port))
-        (set! out (sock:getOutputStream))
-        ;(printf "sock: %s\nout: %s\n" sock out)
-    )
-    ((keyPressed ev)
-        (out:write PRESSED)
-        (out:write (ev:getKeyCode))
-    )
-    ((keyReleased ev)
-        (out:write RELEASED)
-        (out:write (ev:getKeyCode))
-    )
-    ((keyTyped ev) #!void)
-)
 
 (define jf (javax.swing.JFrame))
 (define sender (TCPKeyboardSender *port-number* *host-name*))

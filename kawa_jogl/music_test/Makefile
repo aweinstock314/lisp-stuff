@@ -10,7 +10,7 @@ run: music_test.class
 music_test.class: scheme_util_general.class scheme_util_math.class music_test.scm
 	java kawa.repl --main -C music_test.scm
 
-music_keyboard.class: scheme_util_general.class scheme_util_math.class music_keyboard.scm
+music_keyboard.class: scheme_util_general.class scheme_util_math.class scheme_util_networking.class music_keyboard.scm
 	java kawa.repl --main -C music_keyboard.scm
 
 clean:

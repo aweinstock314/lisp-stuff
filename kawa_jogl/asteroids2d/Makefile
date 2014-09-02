@@ -11,7 +11,7 @@ run:
 asteroids_util_opengl.class: scheme_util_general.class scheme_util_math.class asteroids_util_opengl.scm
 	java kawa.repl -C asteroids_util_opengl.scm
 
-keypress_sender.class: scheme_util_general.class scheme_util_math.class keypress_sender.scm
+keypress_sender.class: scheme_util_general.class scheme_util_math.class scheme_util_networking.class keypress_sender.scm
 	java kawa.repl --main -C keypress_sender.scm
 
 asteroids2d.class: scheme_util_general.class scheme_util_math.class asteroids_util_opengl.class identityshader.vert identityshader.frag asteroids2d.scm

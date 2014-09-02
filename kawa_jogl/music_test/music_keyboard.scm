@@ -1,11 +1,13 @@
 (require <scheme_util_general>)
 (require <scheme_util_math>)
+(require <scheme_util_networking>)
 
 (define-constant window-size 100)
 
 (set-variables-from-cmdline
     ( ((#\h "help") (svfc-display-all-options) (java.lang.System:exit 0)) )
     (+metronome-tempo+ -1 (#\m "metronome") Integer:parseInt)
+    (+port+ -1 (#\p "port") Integer:parseInt)
 )
 
 (define synth::javax.sound.midi.Synthesizer (javax.sound.midi.MidiSystem:getSynthesizer))
@@ -20,8 +22,6 @@
 (define-alias HashSet java.util.HashSet)
 (define-alias HashMap java.util.HashMap)
 (define-alias Long java.lang.Long)
-
-(define get-time java.lang.System:nanoTime)
 
 (define-simple-class MouseEventRepeatFilter (java.awt.event.KeyListener)
     (forwardee::java.awt.event.KeyListener) ; eventually change to collection, have add/remove for observers?
@@ -143,6 +143,10 @@
 (jf:setVisible #t)
 (jf:requestFocus)
 (kp:repaint)
+
+(if (> +port+ 0)
+    (TCPKeyboardReceiver kp +port+)
+)
 
 (future (with-min-ms-per-iteration 500
     (java-iterate kp:currently-held-keys key

@@ -41,6 +41,7 @@
 )
 
 (define printf java.lang.System:out:printf)
+(define get-time java.lang.System:nanoTime)
 (java-import java.util.ArrayList java.lang.Integer java.lang.Double)
 
 (define-macro (thunk . body) `(lambda (. ,(gentemp)) ,@body))
