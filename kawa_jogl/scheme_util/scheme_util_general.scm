@@ -171,7 +171,7 @@
     (define (make-accessor sym)
         (cond ((eqv? sym 'a) 'car)
               ((eqv? sym 'd) 'cdr)
-              (else (error "syment of path was not an a or d"))
+              (else (error "element of path was not an a or d"))
         )
     )
     (define (step-expander path-remainder)
