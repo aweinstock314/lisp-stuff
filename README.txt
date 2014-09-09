@@ -78,3 +78,8 @@ destructuring_bind.scm:
 Translation of CL's destructuring-bind to Scheme. Currently 
 inefficient, as it doesn't yet use a macro for the 
 invokation.
+
+mapreduce.c:
+Implementations of map and fold (reduce) in pure C, using 
+function pointers for higher-order functions, and the C 
+preprocessor for (mostly) type-safe parametric polymorphism.
