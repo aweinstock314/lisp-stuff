@@ -88,11 +88,30 @@
     )
 )
 
+(define-macro (incdec-key amt up down)
+    (define-gensyms x key)
+    (define upcode (static-field java.awt.event.KeyEvent up))
+    (define downcode (static-field java.awt.event.KeyEvent down))
+    `(lambda (,key)
+        (lambda (,x)
+            (cond ((equal? ,key ,upcode) (+ ,x ,amt))
+                  ((equal? ,key ,downcode) (- ,x ,amt))
+                  (#t ,x)
+            )
+        )
+    )
+)
+
+(define *lowest-note* 50)
+(define (modify-lowest-note key)
+    (inplace! ((incdec-key 1 VK_ADD VK_SUBTRACT) key) *lowest-note*)
+)
+
 (define-simple-class keyboard-panel (javax.swing.JPanel java.awt.event.KeyListener)
     (channel::javax.sound.midi.MidiChannel)
     (currently-held-keys::HashSet (HashSet))
     (notes-table::HashMap;[Integer Integer]
-        (make-inorder-keymap 40 1
+        (make-inorder-keymap 0 1
             Z X C V B N M VK_COMMA VK_PERIOD VK_SLASH
             A S D F G H J K L VK_SEMICOLON VK_QUOTE
             Q W E R T Y U I O P VK_OPEN_BRACKET VK_CLOSE_BRACKET
@@ -106,14 +125,15 @@
         (printf "Pressed: %s, %d\n" (ev:getKeyCode) (get-time))
         (currently-held-keys:add (ev:getKeyCode))
         (aif/nn (notes-table:get (ev:getKeyCode))
-            (channel:noteOn it #x7f)
+            (channel:noteOn (+ it *lowest-note*) #x7f)
         )
+        (modify-lowest-note (ev:getKeyCode))
     )
     ((keyReleased ev)
         (printf "Released: %s, %d\n" (ev:getKeyCode) (get-time))
         (currently-held-keys:remove (ev:getKeyCode))
         (aif/nn (notes-table:get (ev:getKeyCode))
-            (channel:noteOff it #x7f)
+            (channel:noteOff (+ it *lowest-note*) #x7f)
         )
     )
     ((keyTyped ev) #!void)
