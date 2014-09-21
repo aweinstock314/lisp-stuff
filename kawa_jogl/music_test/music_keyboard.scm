@@ -72,13 +72,7 @@
 (define-macro (make-inorder-keymap startval delta #!rest (keys::Object[]))
     (define (sym->keycode sym::symbol) (str->keycode (symbol->string sym)))
     (define (str->keycode str::String)
-        (define fieldname
-            (if (= (str:length) 1)
-                (String:format "VK_%s" str)
-                str
-            )
-        )
-        (static-field java.awt.event.KeyEvent (string->symbol fieldname))
+        (static-field java.awt.event.KeyEvent (string->symbol (String:format "VK_%s" str)))
     )
     `(returning (keymap (HashMap))
         ,@(accumulate-range (i 0 keys:length 1)
@@ -115,10 +109,10 @@
     (current-instrument::integer 0)
     (notes-table::HashMap;[Integer Integer]
         (make-inorder-keymap 0 1
-            Z X C V B N M VK_COMMA VK_PERIOD VK_SLASH
-            A S D F G H J K L VK_SEMICOLON VK_QUOTE
-            Q W E R T Y U I O P VK_OPEN_BRACKET VK_CLOSE_BRACKET
-            1 2 3 4 5 6 7 8 9 0 VK_MINUS VK_EQUALS
+            Z X C V B N M COMMA PERIOD SLASH
+            A S D F G H J K L SEMICOLON QUOTE
+            Q W E R T Y U I O P OPEN_BRACKET CLOSE_BRACKET
+            1 2 3 4 5 6 7 8 9 0 MINUS EQUALS
         )
     )
     ((modify-lowest-note key)
