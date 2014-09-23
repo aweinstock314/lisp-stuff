@@ -31,7 +31,9 @@ manually flattening the dependencies into a single jar.)
 
 music_test:
 A demo that plays a simple sweeping tune with a background 
-drum pattern via the javax.sound.midi package.
+drum pattern via the javax.sound.midi package. Also 
+contains a keyboard that plays midi via the same mechanism 
+based on keys pressed.
 
 args_fold_test:
 A simple wrapper around the SRFI-37 "args-fold" command 
