@@ -8,6 +8,19 @@
     )
 )
 
+(define-macro (join-strings-form)
+    '(lambda (sep::String #!rest strs::String[]) 
+        (do ((acc::java.lang.StringBuilder (java.lang.StringBuilder) acc) (i 0 (+ i 1)))
+            (#1=(equal? i (- strs:length 1)) #2=(acc:append (strs i)) (acc:toString))
+            #2# (if (not #1#) (acc:append sep))
+        )
+    )
+)
+
+(define-macro (make-symbol-form)
+    '(lambda (str . strs) (symbol (apply (join-strings-form) "" (cons str strs))))
+)
+
 (define-macro (with-all-forms-exported . forms)
     (letrec ((helper (lambda (form acc)
                 (if (not (list? form)) acc
@@ -34,9 +47,23 @@
 
 (with-all-forms-exported
 
+(define join-strings (join-strings-form))
+
+(define make-symbol (make-symbol-form))
+
 (define-macro (java-import . classnames)
-    `(begin ,@(map (lambda (classname)
+    (define (make-import classname)
         `(define-alias ,((shortened-java-name) classname) ,classname)
+    )
+    (define (make-imports prefix classnames)
+        `(begin ,@(map (lambda (name)
+            (make-import ((make-symbol-form) (symbol->string prefix) "." (symbol->string name)))
+        ) classnames))
+    )
+    `(begin ,@(map (lambda (classname-or-path)
+        (cond ;((list? classname-or-path) `(begin ,@(make-imports (car classname-or-path) (cdr classname-or-path))))
+              (#t (make-import classname-or-path))
+        )
     ) classnames))
 )
 
