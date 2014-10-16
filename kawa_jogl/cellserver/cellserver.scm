@@ -30,14 +30,27 @@
     )
 )
 
+(define (table-row-of-bitvector vec::u8vector)
+    (apply html:tr (accumulate-range (i 0 (u8vector-length vec) 1)
+        (define color (String[]  "#000000" "#ffffff"))
+        (define style (String:format "{ color: %s; background-color: %s; }" (color (vec i)) (color (- 1 (vec i)))))
+        (unescaped-data (String:format "<td style=\"%s\">%s</td>" style (vec i)))
+    ))
+)
+
+(define (table-of-bitvector-list lst)
+    (apply html:table border: 1 (map table-row-of-bitvector lst))
+)
+
 (define (valid-response e::HttpExchange match)
     (let* ( (rulestr (match 1)) (seedstr (match 2))
             (rulenode (list "Rule:" rulestr (html:br)))
             (seednode (list (String:format "Seed: 0x%s" seedstr) (html:br)))
             (rulenum (Integer:valueOf rulestr 10))
             (seednum (Integer:valueOf seedstr 16))
+            (sometable (list (table-of-bitvector-list (accumulate-range (i 1 100 1) (bitvector-of-int i)))))
         )
-        (apply html:span (append rulenode seednode))
+        (apply html:span (append rulenode seednode sometable))
     )
 )
 
