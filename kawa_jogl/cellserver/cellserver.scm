@@ -22,6 +22,14 @@
     (html:html (html:head (html:title titlestr)) (html:body bodycontent))
 )
 
+(define (bitvector-of-int x::integer)
+    (returning (vec (make-u8vector (bitwise-length x)))
+        (pascal-for (i 0 (bitwise-length x) 1)
+            (u8vector-set! vec i (if (bitwise-bit-set? x i) 1 0))
+        )
+    )
+)
+
 (define (valid-response e::HttpExchange match)
     (let* ( (rulestr (match 1)) (seedstr (match 2))
             (rulenode (list "Rule:" rulestr (html:br)))
