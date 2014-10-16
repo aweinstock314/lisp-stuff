@@ -1,0 +1,46 @@
+(require <scheme_util_general>)
+(require 'regex)
+
+(java-imports (com.sun.net.httpserver HttpServer HttpExchange)
+              (java.io PrintStream)
+              (java.net InetSocketAddress)
+)
+
+(define (serve-string e::HttpExchange code::int str::String)
+    (e:sendResponseHeaders code (str:length))
+    (define ps (PrintStream (e:getResponseBody)))
+    (ps:print str)
+    (ps:close)
+)
+
+(define (extract-parameters requestPath::String)
+    (regex-match #/^\/rule([0-9]+)seed([0-9a-fA-F]+)$/ requestPath)
+)
+
+(define titlestr "Cellserver - dynamically serving 1d cellular automata")
+
+(define-macro (handle-request-form) '(lambda (e::HttpExchange)
+    (print-exceptions
+        (printf "Handling a request to %s\n" (e:getRemoteAddress))
+        (define requestPath ((e:getRequestURI):getPath))
+        (printf "Request URI: \"%s\"\n" requestPath)
+        (define parametersContent (let ((m (extract-parameters requestPath)))
+            (if m (html:span "Rule: " (m 1) (html:br) (String:format "Seed: 0x%s" (m 2)) (html:br))
+                  (html:span "Invalid Parameters - try page /rule30seed1" (html:br))
+            )
+        ))
+        (printf "%s\n" parametersContent)
+        ;(define content "<html><head><<body>Hello world!</body></html>")
+        (define content (html:html (html:head (html:title titlestr)) (html:body parametersContent)))
+        (define code 200)
+        (serve-string e code content)
+        (e:close)
+    )
+))
+
+(define port-number 8100)
+
+(define serv (HttpServer:create (InetSocketAddress port-number) -1))
+(serv:start)
+(serv:createContext "/" (handle-request-form))
+(printf "Bound to port %s\n" port-number)
