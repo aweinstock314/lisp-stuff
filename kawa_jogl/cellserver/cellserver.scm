@@ -9,7 +9,7 @@
 (define *seed-mode* 'bin)
 (define *port-number* 8100)
 (define *minimum-width* 100)
-(define *render-depth* 100)
+(define *render-depth* 50)
 
 (define (serve-string e::HttpExchange code::int str::String)
     (e:sendResponseHeaders code (str:length))
@@ -25,9 +25,15 @@
     )
 )
 
+(define (css-header)
+    (define color (String[]  "#000000" "#ffffff"))
+    (define (style c) (String:format "{color: %s; background-color: %s;}" (color c) (color (- 1 c))))
+    (unescaped-data (String:format "<style>.blackcell %s .whitecell %s</style>" (style 1) (style 0)))
+)
+
 (define (emit-page bodycontent)
     (define titlestr "Cellserver - dynamically serving 1d cellular automata")
-    (html:html (html:head (html:title titlestr)) (html:body bodycontent))
+    (html:html (html:head (html:title titlestr) (css-header)) (html:body bodycontent))
 )
 
 (define (bitvector-of-binstring s::String)
@@ -65,9 +71,8 @@
 (define (table-row-of-bitvector vec::u8vector)
     (apply html:tr (accumulate-range (i 0 (u8vector-length vec) 1)
         (cond ((or (= (vec i) 0) (= (vec i) 1))
-                (define color (String[]  "#000000" "#ffffff"))
-                (define style (String:format "{color: %s; background-color: %s;}" (color (vec i)) (color (- 1 (vec i)))))
-                (unescaped-data (String:format "<td style=\"%s\">%s</td>" style (vec i)))
+                (define color-class (if (> (vec i) 0) "blackcell" "whitecell"))
+                (unescaped-data (String:format "<td class=\"%s\">%s</td>" color-class (vec i)))
             )
             (#t (html:td))
         )
