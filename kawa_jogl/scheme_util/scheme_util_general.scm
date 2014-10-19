@@ -91,6 +91,14 @@
         (set-values! ,vars ,expr)
     )
 )
+(define-macro (with-output-to-string . body)
+    (define port (gentemp))
+    `(call-with-output-string (lambda (,port)
+        (parameterize ((current-output-port ,port))
+            ,@body
+        )
+    ))
+)
 
 ; the first way has multiple-evaluation problems, but works fine for simple cases
 ; the second way (commented), should be the right way, but generates bytecode that sometimes gives verify errors (revision 7952 fixed a simplified version of this error, which turned out to have been oversimplified)
