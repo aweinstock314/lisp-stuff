@@ -55,7 +55,7 @@
     (define (make-imports prefix classnames)
         (map (lambda (name)
             (let ((classname ((make-symbol-form) (symbol->string prefix) "." (symbol->string name))))
-                `(define-alias ,((shortened-java-name) classname) ,classname)
+                `(define-alias ,name ,classname)
             )
         ) classnames)
     )
@@ -182,6 +182,16 @@
     `(try-catch
         (begin ,@body)
         (e java.lang.Exception (invoke e 'printStackTrace) #f)
+    )
+)
+
+(define-macro (aif test then-clause #!optional (else-clause #!void))
+    (define-gensyms tmp)
+    `(let ((,tmp ,test))
+        (if ,tmp
+            (let ((it ,tmp)) ,then-clause)
+            ,else-clause
+        )
     )
 )
 

@@ -160,8 +160,10 @@
         (printf "Handling a request to %s\n" (e:getRemoteAddress))
         (define requestPath ((e:getRequestURI):getPath))
         (printf "Request URI: \"%s\"\n" requestPath)
-        (define parameters-match (extract-parameters requestPath *seed-mode*))
-        (define bodycontent (if parameters-match (valid-response e parameters-match) (invalid-response e)))
+        (define bodycontent (aif (extract-parameters requestPath *seed-mode*)
+            (valid-response e it)
+            (invalid-response e)
+        ))
         (serve-string e 200 (emit-page bodycontent)) ; maybe change the code for an invalid response?
         (e:close)
     )
