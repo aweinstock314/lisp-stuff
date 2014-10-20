@@ -6,7 +6,7 @@
               (java.net InetSocketAddress)
 )
 
-(define *seed-mode* 'bin)
+(define *seed-mode* 'rlebin)
 (define *port-number* 8100)
 (define *minimum-width* 100)
 (define *render-depth* 50)
@@ -19,9 +19,11 @@
 )
 
 (define (extract-parameters requestPath::String mode)
-    (if (equal? mode 'hex)
-        (regex-match #/^\/rule([0-9]+)seed([0-9a-fA-F]+)$/ requestPath)
-        (regex-match #/^\/rule([0-9]+)seed([01]+)$/ requestPath)
+    (case mode
+        ((hex) (regex-match #/^\/rule([0-9]+)seed([0-9a-fA-F]+)$/ requestPath))
+        ((bin) (regex-match #/^\/rule([0-9]+)seed([01]+)$/ requestPath))
+        ((rlebin) (regex-match #/^\/rule([0-9]+)seed((?:(?:\([0-9]+\))?[01])+)$/ requestPath))
+        (else (error (String:format "Unknown mode %s" mode)))
     )
 )
 
@@ -44,6 +46,26 @@
     )
 )
 
+(define-macro (with-matcher re str varname . body)
+    `(let ((,varname (invoke ,re 'matcher ,str)))
+        (while (invoke ,varname 'find)
+            ,@body
+        )
+    )
+)
+
+(define (bitvector-of-rle-binstring s::String)
+    (apply u8vector-concat (with-list-collector col
+        (with-matcher #/(?:\(([0-9]+)\))?([01])/ s m
+            (let* ( (size (aif/nn (m:group 1) (Integer:valueOf it) 1))
+                    (bit (Integer:valueOf (m:group 2)))
+                )
+                (col (make-u8vector size bit))
+            )
+        )
+    ))
+)
+
 (define (bitvector-of-int x::integer)
     (returning (vec (make-u8vector (bitwise-length x)))
         (pascal-for (i 0 (bitwise-length x) 1)
@@ -56,7 +78,7 @@
 (define (u8vector-concat . vecs) (list->u8vector (apply append (map u8vector->list vecs))))
 
 (define (ensure-minimum-length vec::u8vector n)
-    (define padding (make-u8vector (- n (u8vector-length vec))))
+    (define padding (make-u8vector (max 0 (- n (u8vector-length vec)))))
     (u8vector-concat vec padding)
 )
 
@@ -118,9 +140,12 @@
 )
 
 (define (make-seed-vector seedstr mode)
-    (if (equal? mode 'hex)
-        (bitvector-of-int (Integer:valueOf seedstr 16))
-        (bitvector-of-binstring seedstr)
+    (printf "using seed \"%s\"\n" seedstr)
+    (case mode
+        ((hex) (bitvector-of-int (Integer:valueOf seedstr 16)))
+        ((bin) (bitvector-of-binstring seedstr))
+        ((rlebin) (bitvector-of-rle-binstring seedstr))
+        (else (error (String:format "Unknown mode %s" mode)))
     )
 )
 
