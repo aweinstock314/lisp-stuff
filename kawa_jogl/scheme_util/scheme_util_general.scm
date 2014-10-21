@@ -214,6 +214,11 @@
     )
 )
 
+;(define-macro (install-sharpdot-reader)
+;    (require 'readtable)
+;    (set-dispatch-macro-character #\# #\. (lambda (port subchar numarg) (eval (read port))))
+;    '(begin)
+;)
 ; Would be nice to have CL's sharp-dot read-macro for this (so the callsite is just #.(slurp-file "foo"), and this extra macro is unneccessary)
 (define-macro (file-as-string-constant filename) (slurp-file filename))
 

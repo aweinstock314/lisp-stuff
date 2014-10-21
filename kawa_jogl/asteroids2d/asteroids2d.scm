@@ -299,6 +299,7 @@
     )
 )
 
+;(install-sharpdot-reader)
 (define-simple-class interface-state ()
     (displayed-victory-message #f)
     (currently-held-keys::HashSet (HashSet))
@@ -316,6 +317,7 @@
     ((reset-polygons-buffer! gl2::GL2)
             (set! cbuf (concatenate-buffers (append *constant-buffer* ships-polybuf asteroids-polybuf)))
             (set-polygons-buffer gl2 cbuf)
+            ;(set! shader-program (make-shader-program gl2 #.(slurp-file "identityshader.vert") #.(slurp-file "identityshader.frag")))
             (set! shader-program (make-shader-program gl2 (file-as-string-constant "identityshader.vert") (file-as-string-constant "identityshader.frag")))
             (define pos-attrib ::int (gl2:glGetAttribLocation shader-program "position"))
             (gl2:glVertexAttribPointer pos-attrib 3 gl2:GL_FLOAT #f 24 0)
