@@ -119,9 +119,9 @@
 
 (define (step-automaton rulevec::u8vector state::u8vector)
     (define len (u8vector-length state))
-    (define (idxmod x) (mod (+ x len) len))
+    (define (cell x) (state (mod (+ x len) len)))
     (list->u8vector (accumulate-range (i 0 len 1)
-        (let ((left (state (idxmod (- i 1)))) (up (state i)) (right (state (idxmod (+ i 1)))))
+        (let ((left (cell (- i 1))) (up (cell i)) (right (cell (+ i 1))))
             (rulevec (+ (* 4 left) (* 2 up) right))
         )
     ))
