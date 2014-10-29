@@ -67,10 +67,9 @@
     ))
 )
 
-(define (rlestring-of-bitvector vec::u8vector) :: String
+(define (rlestring-of-bitvector vec::u8vector rle-threshhold::integer) :: String
     (define len (u8vector-length vec))
     (define (emit sb last occs)
-        (define rle-threshhold 5)
         (if (< occs rle-threshhold)
             (pascal-for (i 0 occs 1) (sb:append last))
             (sb:append (String:format "(%s)%s" occs last))
@@ -111,26 +110,42 @@
     )
 )
 
-(define (table-row-of-bitvector vec::u8vector)
+(define (make-toggle-link rulenum vec::u8vector i)
+    (let* ( (tmpvec (list->u8vector (u8vector->list vec))) ; TODO: efficiency?
+            (newseed (begin (set! (tmpvec i) (- 1 (tmpvec i))) (rlestring-of-bitvector tmpvec 5)))
+        )
+        (String:format "<a href=\"/rule%sseed%s\">%s</a>" rulenum newseed (vec i))
+    )
+)
+
+(define (table-row-of-bitvector rulenum vec::u8vector insert-toggle?::boolean)
     (apply html:tr (accumulate-range (i 0 (u8vector-length vec) 1)
         (cond ((or (= (vec i) 0) (= (vec i) 1))
                 (define color-class (if (> (vec i) 0) "blackcell" "whitecell"))
-                (unescaped-data (String:format "<td class=\"%s\">%s</td>" color-class (vec i)))
+                (define content (if insert-toggle? (make-toggle-link rulenum vec i) (vec i)))
+                (unescaped-data (String:format "<td class=\"%s\">%s</td>" color-class content))
             )
             (#t (html:td))
         )
     ))
 )
 
-(define (table-of-bitvector-list lst)
-    (apply html:table border: 1 style: "{display: inline-table;}" (map table-row-of-bitvector lst))
+(define (table-of-bitvector-list rulenum lst insert-toggle?)
+    (apply html:table border: 1 style: "{display: inline-table;}"
+        (if insert-toggle?
+            (cons (table-row-of-bitvector rulenum (car lst) #t)
+                (map (cut table-row-of-bitvector rulenum <> #f) (cdr lst))
+            )
+            (map (cut table-row-of-bitvector rulenum <> #f) lst)
+        )
+    )
 )
 
 (define (rulevec-of-rulenum rulenum) (ensure-minimum-length (bitvector-of-int rulenum) 8))
 
 (define (make-rules-table rulenum)
     (define (make-rule-cell idx val)
-        (table-of-bitvector-list (list (ensure-minimum-length (bitvector-of-int idx) 3) (u8vector -1 val -1)))
+        (table-of-bitvector-list #!null (list (ensure-minimum-length (bitvector-of-int idx) 3) (u8vector -1 val -1)) #f)
     )
     (define rulevec (rulevec-of-rulenum rulenum))
     (apply html:div "Rewrite rules: " (html:br)
@@ -171,7 +186,11 @@
 )
 
 (define (make-cell-grid rulenum seedvec min-width depth)
-    (table-of-bitvector-list (calculate-grid rulenum (ensure-minimum-length seedvec min-width) depth))
+    (table-of-bitvector-list
+        rulenum
+        (calculate-grid rulenum (ensure-minimum-length seedvec min-width) depth)
+        #t
+    )
 )
 
 (define (make-links rulenum seedstr)
