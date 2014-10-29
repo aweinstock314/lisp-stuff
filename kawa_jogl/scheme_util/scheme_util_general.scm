@@ -198,7 +198,7 @@
 (define-macro (aif/nn test then-clause #!optional (else-clause #!void))
     (define-gensyms tmp)
     `(let ((,tmp ,test))
-        (if (not (equal? ,tmp #!null))
+        (if (not (eq? ,tmp #!null))
             (let ((it ,tmp)) ,then-clause)
             ,else-clause
         )
