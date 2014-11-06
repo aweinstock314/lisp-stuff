@@ -1,5 +1,6 @@
 (require <scheme_util_general>)
 (require 'regex)
+(require 'list-lib)
 
 (java-imports (com.sun.net.httpserver HttpServer HttpExchange)
               (java.io PrintStream)
@@ -99,8 +100,21 @@
     )
 )
 
-; this can probably be done more efficiently without intermediate lists
-(define (u8vector-concat . vecs) (list->u8vector (apply append (map u8vector->list vecs))))
+;(define (u8vector-concat . vecs) (list->u8vector (apply append (map u8vector->list vecs))))
+(define (u8vector-concat . vecs)
+    (define lens (map u8vector-length vecs))
+    (define total-len (fold + 0 lens))
+    (returning (vec (make-u8vector total-len))
+        (do ((l lens (cdr l))
+             (v vecs (cdr v))
+             (i 0 (+ i (car l))))
+            ((>= i total-len))
+            (pascal-for (j 0 (car l) 1)
+                (u8vector-set! vec (+ i j) ((car v) j))
+            )
+        )
+    )
+)
 
 (define (ensure-minimum-length vec::u8vector n)
     (define padding (make-u8vector (max 0 (- n (u8vector-length vec)))))
