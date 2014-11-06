@@ -5,6 +5,7 @@
               (java.io PrintStream)
               (java.net InetSocketAddress)
               (java.lang StringBuilder)
+              (java.util.regex Pattern Matcher)
 )
 
 (define *seed-mode* 'rlebin)
@@ -55,13 +56,17 @@
     )
 )
 
+(define (regex-map re::Pattern str::String f::procedure)
+    (with-list-collector col (with-matcher re str m (col (f m))))
+)
+
 (define (bitvector-of-rle-binstring s::String)
-    (apply u8vector-concat (with-list-collector col
-        (with-matcher #/(?:\(([0-9]+)\))?([01])/ s m
+    (apply u8vector-concat (regex-map #/(?:\(([0-9]+)\))?([01])/ s
+        (lambda (m::Matcher)
             (let* ( (size (aif/nn (m:group 1) (Integer:valueOf it) 1))
                     (bit (Integer:valueOf (m:group 2)))
                 )
-                (col (make-u8vector size bit))
+                (make-u8vector size bit)
             )
         )
     ))
