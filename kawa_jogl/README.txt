@@ -43,3 +43,8 @@ scheme_util:
 A bunch of functions and macros that were written in the 
 process of writing asteroids that seem to be useful in 
 general.
+
+cellserver:
+An HTTP server that dynamically generates static HTML (no 
+JS) displaying cellular automatons based on the URL 
+provided to it.
