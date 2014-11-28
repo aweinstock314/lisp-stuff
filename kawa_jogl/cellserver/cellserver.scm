@@ -36,7 +36,7 @@
     (unescaped-data (String:format "<style>.blackcell %s .whitecell %s</style>" (style 1) (style 0)))
 )
 
-(define (emit-page bodycontent)
+(define (emit-page bodycontent) :: String
     (define titlestr "Cellserver - dynamically serving 1d cellular automata")
     (html:html (html:head (html:title titlestr) (css-header)) (html:body bodycontent))
 )
@@ -246,7 +246,7 @@
             (valid-response e it)
             (invalid-response e)
         ))
-        (serve-string e 200 (emit-page bodycontent)) ; maybe change the code for an invalid response?
+        (serve-string e 200 ((emit-page bodycontent):replaceAll "><" ">\n<")) ; maybe change the code for an invalid response?
         (e:close)
     )
 ))
