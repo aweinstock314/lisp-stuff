@@ -34,7 +34,7 @@ int print_and_ident_int(int x)
 
 int plus_one_int(int x) { return x+1; }
 
-void* sum_kernal(void* acc, int elem)
+void* sum_kernel(void* acc, int elem)
 {
     *(int*)acc = (*(int*)acc) + elem;
     return acc;
@@ -50,13 +50,13 @@ int main(int argc, char** argv)
     printf("Before: \n");
     inplace_map_int(&a, &print_and_ident_int);
     sum = 0;
-    foldl_int(&sum_kernal, &a, (void*)&sum);
+    foldl_int(&sum_kernel, &a, (void*)&sum);
     printf("Sum: %d\n", sum);
     inplace_map_int(&a, &plus_one_int);
     printf("After: \n");
     inplace_map_int(&a, &print_and_ident_int);
     sum = 0;
-    foldl_int(&sum_kernal, &a, (void*)&sum);
+    foldl_int(&sum_kernel, &a, (void*)&sum);
     printf("Sum: %d\n", sum);
     return 0;
 }
