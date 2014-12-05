@@ -234,7 +234,12 @@
 )
 
 (define (invalid-response e::HttpExchange)
-    (html:span "Invalid Parameters - try page " (html:a href: #1="/rule30seed1" #1#) (html:br))
+    (html:span "Invalid parameters, proper requests are of the form \"/rule[0-255]seed{run-length-encoded binary}\"" (html:br)
+        "For example: " (html:br)
+        (html:a href: #1="/rule30seed1" #1#) (html:br)
+        (html:a href: #1="/rule90seed(50)01" #1#) (html:br)
+        (html:a href: #1="/rule110seed(25)0(5)1(5)0(30)1" #1#) (html:br)
+    )
 )
 
 (define-macro (handle-request-form) '(lambda (e::HttpExchange)
