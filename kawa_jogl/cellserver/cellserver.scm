@@ -12,7 +12,7 @@
 (define *seed-mode* 'rlebin)
 (define *port-number* 8100)
 (define *minimum-width* 100)
-(define *render-depth* 50)
+(define *default-iteration-count* 50)
 
 (define (serve-string e::HttpExchange code::int str::String)
     (e:sendResponseHeaders code (str:length))
@@ -25,7 +25,7 @@
     (case mode
         ((hex) (regex-match #/^\/rule([0-9]+)seed([0-9a-fA-F]+)$/ requestPath))
         ((bin) (regex-match #/^\/rule([0-9]+)seed([01]+)$/ requestPath))
-        ((rlebin) (regex-match #/^\/rule([0-9]+)seed((?:(?:\([0-9]+\))?[01])+)$/ requestPath))
+        ((rlebin) (regex-match #/^\/rule([0-9]+)seed((?:(?:\([0-9]+\))?[01])+)(?:iters([0-9]+))?$/ requestPath))
         (else (error (String:format "Unknown mode %s" mode)))
     )
 )
@@ -127,19 +127,19 @@
     )
 )
 
-(define (make-toggle-link rulenum vec::u8vector i)
+(define (make-toggle-link rulenum depth vec::u8vector i)
     (let* ( (tmpvec (list->u8vector (u8vector->list vec))) ; TODO: efficiency?
             (newseed (begin (set! (tmpvec i) (- 1 (tmpvec i))) (rlestring-of-bitvector tmpvec 5)))
         )
-        (String:format "<a href=\"/rule%sseed%s\">%s</a>" rulenum newseed (vec i))
+        (String:format "<a href=\"/rule%sseed%siters%s\">%s</a>" rulenum newseed depth (vec i))
     )
 )
 
-(define (table-row-of-bitvector rulenum vec::u8vector insert-toggle?::boolean)
+(define (table-row-of-bitvector rulenum depth vec::u8vector insert-toggle?::boolean)
     (apply html:tr (accumulate-range (i 0 (u8vector-length vec) 1)
         (cond ((or (= (vec i) 0) (= (vec i) 1))
                 (define color-class (if (> (vec i) 0) "blackcell" "whitecell"))
-                (define content (if insert-toggle? (make-toggle-link rulenum vec i) (vec i)))
+                (define content (if insert-toggle? (make-toggle-link rulenum depth vec i) (vec i)))
                 (unescaped-data (String:format "<td class=\"%s\">%s</td>" color-class content))
             )
             (#t (html:td))
@@ -147,13 +147,13 @@
     ))
 )
 
-(define (table-of-bitvector-list rulenum lst insert-toggle?)
+(define (table-of-bitvector-list rulenum depth lst insert-toggle?)
     (apply html:table border: 1 style: "{display: inline-table;}"
         (if insert-toggle?
-            (cons (table-row-of-bitvector rulenum (car lst) #t)
-                (map (cut table-row-of-bitvector rulenum <> #f) (cdr lst))
+            (cons (table-row-of-bitvector rulenum depth (car lst) #t)
+                (map (cut table-row-of-bitvector rulenum depth <> #f) (cdr lst))
             )
-            (map (cut table-row-of-bitvector rulenum <> #f) lst)
+            (map (cut table-row-of-bitvector rulenum depth <> #f) lst)
         )
     )
 )
@@ -162,7 +162,7 @@
 
 (define (make-rules-table rulenum)
     (define (make-rule-cell idx val)
-        (table-of-bitvector-list #!null (list (ensure-minimum-length (bitvector-of-int idx) 3) (u8vector -1 val -1)) #f)
+        (table-of-bitvector-list #!null #!null (list (ensure-minimum-length (bitvector-of-int idx) 3) (u8vector -1 val -1)) #f)
     )
     (define rulevec (rulevec-of-rulenum rulenum))
     (apply html:div "Rewrite rules: " (html:br)
@@ -205,14 +205,15 @@
 (define (make-cell-grid rulenum seedvec min-width depth)
     (table-of-bitvector-list
         rulenum
+        depth
         (calculate-grid rulenum (ensure-minimum-length seedvec min-width) depth)
         #t
     )
 )
 
-(define (make-links rulenum seedstr)
+(define (make-links rulenum seedstr depth)
     (define (mod256 x) (mod (+ x 256) 256))
-    (define (make-rule-link num anchortext) (unescaped-data (String:format "<a href=\"/rule%sseed%s\">%s</a> " num seedstr anchortext)))
+    (define (make-rule-link num anchortext) (unescaped-data (String:format "<a href=\"/rule%sseed%siters%s\">%s</a> " num seedstr depth anchortext)))
     (html:span  (make-rule-link (mod256 (- rulenum 1)) "Previous rule")
                 (make-rule-link (mod256 (+ rulenum 1)) "Next rule")
                 (html:br)
@@ -224,10 +225,11 @@
             (rulenode (list "Rule:" rulestr (html:br)))
             (seednode (list (String:format "Seed: %s" seedstr) (html:br)))
             (rulenum (Integer:valueOf rulestr 10))
+            (num-iterations (aif (match 3) (Integer:valueOf it 10) *default-iteration-count*))
             ;(sometable (list (table-of-bitvector-list (accumulate-range (i 1 100 1) (ensure-minimum-length (bitvector-of-int i) 10)))))
-            (links (list (make-links rulenum seedstr)))
+            (links (list (make-links rulenum seedstr num-iterations)))
             (ruletable (list (make-rules-table rulenum)))
-            (datatable (list (make-cell-grid rulenum (make-seed-vector seedstr *seed-mode*) *minimum-width* *render-depth*)))
+            (datatable (list (make-cell-grid rulenum (make-seed-vector seedstr *seed-mode*) *minimum-width* num-iterations)))
         )
         (apply html:span (append links rulenode seednode ruletable (list (html:br)) datatable))
     )
