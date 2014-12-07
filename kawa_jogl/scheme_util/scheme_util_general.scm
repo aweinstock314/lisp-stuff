@@ -143,6 +143,14 @@
     )
 )
 
+(define-macro (dotimes rng . body)
+    (define var (car rng))
+    (define times (cadr rng))
+    `(pascal-for (,var 0 ,times 1)
+        ,@body
+    )
+)
+
 (define-macro (with-list-collector col . body)
     (define-gensyms head tail elem)
     `(let* ((,head (cons '() '())) (,tail ,head)
