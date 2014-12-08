@@ -10,7 +10,7 @@
     )
 )
 
-(pascal-for (i 0 3 1) (future (begin
+(dotimes (i 3) (future (begin
     (define pitch 127)
     (define pitchsweeper (sweep 30 70 4))
     (define lastpitch 0)

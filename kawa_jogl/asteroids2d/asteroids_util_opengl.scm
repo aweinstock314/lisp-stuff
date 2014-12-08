@@ -44,7 +44,7 @@
 ; returns a list of vertices of a "regular" polygon, with the first vertex at rot radians
 ; the radius parameter is a function to allow non-regular polygons such as isosceles triangles
 (define (calc-poly rot::double radiusf::gnu.mapping.Procedure sides::int colorf::gnu.mapping.Procedure)
-    (returning (poly (polygon)) (pascal-for (i 0 sides 1)
+    (returning (poly (polygon)) (dotimes (i sides)
         (let* ((rad::double (radiusf i))
                (ang::double (+ rot (* tau (/ i sides))))
             )
@@ -59,7 +59,7 @@
 )
 
 (define (make-rectangle width height colorf)
-    (returning (poly (polygon)) (pascal-for (i 0 4 1)
+    (returning (poly (polygon)) (dotimes (i 4)
         (let* ((f (lambda (x) (sqrt (* 2 (square x)))))
                (xrad::double (f width))
                (yrad::double (f height))
@@ -216,7 +216,7 @@
         (for-each (lambda (buf::FloatBuffer)
             (invoke cbuf:starts 'put (identity-hash buf) (invoke cbuf:buf 'position))
             ;(printf "pos: %s; buf: %s; size: %s\n" (invoke cbuf:buf 'position) (identity-hash buf) (invoke cbuf:starts 'size))
-            (pascal-for (i 0 (buf:capacity) 1)
+            (dotimes (i (buf:capacity))
                 (invoke cbuf:buf 'put (buf:get i))
             )
         ) buffers)
@@ -332,7 +332,7 @@
             (dist (java.lang.Math:sqrt (+ (* dx dx) (* dy dy))))
             (slope (atan2 dy dx))
           )
-        (pascal-for (i 0 density 1)
+        (dotimes (i density)
             (define j (/ i density))
             (drawPolygon gl2 cbuf (+ x1 (* j dist (cos slope))) (+ y1 (* j dist (sin slope))) 0 dot)
         )

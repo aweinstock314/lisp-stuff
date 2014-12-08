@@ -268,7 +268,7 @@
     (eventloop-render-mutex (java.lang.Object))
 
     ((spawn-asteroids! amount::integer)
-        (pascal-for (i 0 amount 1) (active-asteroids:add (asteroid interface)))
+        (dotimes (i amount) (active-asteroids:add (asteroid interface)))
     )
     ((player-death! p::player iter::java.util.Iterator[player])
         (define shp p:shp)
@@ -405,7 +405,7 @@
 
 (define (split-if-nearby-asteroid-overlaps-point! gs::game-state is::interface-state s::shot)
     (call-with-current-continuation (lambda (break)
-        (pascal-for (i 0 +shot-collision-granularity+ 1)
+        (dotimes (i +shot-collision-granularity+)
             (define step-fraction (/ i +shot-collision-granularity+))
             ;(for-each (lambda (a::asteroid)
             (with-asteroids-near-point gs:active-asteroids s:x s:y .5

@@ -111,7 +111,7 @@
     `(lambda (mxn :: ,arraytype nxp :: ,arraytype)
         (,arraytype length: ,(* m p)
             ,@(with-list-collector col
-                (pascal-for (c 0 p 1) (pascal-for (r 0 m 1)
+                (dotimes (c p) (dotimes (r m)
                     (col (emit-matmult-expr r c))
                 ))
             )
