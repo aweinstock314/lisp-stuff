@@ -135,11 +135,11 @@
     )
 )
 
-(define (table-row-of-bitvector rulenum depth vec::u8vector insert-toggle?::boolean)
+(define (table-row-of-bitvector vec::u8vector process)
     (apply html:tr (accumulate-range (i 0 (u8vector-length vec) 1)
         (cond ((or (= (vec i) 0) (= (vec i) 1))
                 (define color-class (if (> (vec i) 0) "blackcell" "whitecell"))
-                (define content (if insert-toggle? (make-toggle-link rulenum depth vec i) (vec i)))
+                (define content (process vec i))
                 (unescaped-data (String:format "<td class=\"%s\">%s</td>" color-class content))
             )
             (#t (html:td))
@@ -147,22 +147,32 @@
     ))
 )
 
-(define (table-of-bitvector-list rulenum depth lst insert-toggle?)
+(define (table-of-bitvector-list lst process just-process-first-row?)
     (apply html:table border: 1 style: "{display: inline-table;}"
-        (if insert-toggle?
-            (cons (table-row-of-bitvector rulenum depth (car lst) #t)
-                (map (cut table-row-of-bitvector rulenum depth <> #f) (cdr lst))
+        (if just-process-first-row?
+            (cons (table-row-of-bitvector (car lst) process)
+                (map (cut table-row-of-bitvector <> (lambda (vec i) (vec i))) (cdr lst))
             )
-            (map (cut table-row-of-bitvector rulenum depth <> #f) lst)
+            (map (cut table-row-of-bitvector <> process) lst)
         )
     )
 )
 
 (define (rulevec-of-rulenum rulenum) (ensure-minimum-length (bitvector-of-int rulenum) 8))
 
+(define (rulenum-of-rulevec rulevec)
+    (do ((i 0 (+ i 1))
+         (j 1 (* j 2))
+         (k 0 (+ k (* (rulevec i) j))))
+        ((equal? i (u8vector-length rulevec)) k)
+    )
+)
+
 (define (make-rules-table rulenum)
     (define (make-rule-cell idx val)
-        (table-of-bitvector-list #!null #!null (list (ensure-minimum-length (bitvector-of-int idx) 3) (u8vector -1 val -1)) #f)
+        (table-of-bitvector-list
+            (list (ensure-minimum-length (bitvector-of-int idx) 3) (u8vector -1 val -1))
+            (lambda (vec i) (vec i)) #f)
     )
     (define rulevec (rulevec-of-rulenum rulenum))
     (apply html:div "Rewrite rules: " (html:br)
@@ -204,9 +214,8 @@
 
 (define (make-cell-grid rulenum seedvec min-width depth)
     (table-of-bitvector-list
-        rulenum
-        depth
         (calculate-grid rulenum (ensure-minimum-length seedvec min-width) depth)
+        (lambda (vec i) (make-toggle-link rulenum depth vec i))
         #t
     )
 )
