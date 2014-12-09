@@ -127,23 +127,37 @@
     )
 )
 
-(define (make-toggle-link rulenum depth vec::u8vector i)
-    (let* ( (tmpvec (list->u8vector (u8vector->list vec))) ; TODO: efficiency?
-            (newseed (begin (set! (tmpvec i) (- 1 (tmpvec i))) (rlestring-of-bitvector tmpvec 5)))
-        )
-        (String:format "<a href=\"/rule%sseed%siters%s\">%s</a>" rulenum newseed depth (vec i))
+(define (u8vector-toggle-ith vec::u8vector i)
+    (returning (tmp (list->u8vector (u8vector->list vec))) ; TODO: efficiency for copy?
+        (set! (tmp i) (- 1 (tmp i)))
     )
+)
+
+(define (make-link rulenum depth seed::u8vector linktext)
+    (String:format "<a href=\"/rule%sseed%siters%s\">%s</a>"
+        rulenum
+        (rlestring-of-bitvector seed 5)
+        depth
+        linktext
+    )
+)
+
+(define (make-toggle-link-seed rulenum depth seed::u8vector i)
+    (make-link rulenum depth (u8vector-toggle-ith seed i) (seed i))
+)
+
+(define (make-toggle-link-rule rulenum depth seed::u8vector i)
+    (make-link (bitwise-xor rulenum (ash 1 i)) depth seed (if (bitwise-bit-set? rulenum i) 1 0))
 )
 
 (define (table-row-of-bitvector vec::u8vector process)
     (apply html:tr (accumulate-range (i 0 (u8vector-length vec) 1)
-        (cond ((or (= (vec i) 0) (= (vec i) 1))
-                (define color-class (if (> (vec i) 0) "blackcell" "whitecell"))
-                (define content (process vec i))
-                (unescaped-data (String:format "<td class=\"%s\">%s</td>" color-class content))
-            )
-            (#t (html:td))
+        (define color-class (if (= (vec i) 1) "blackcell" "whitecell"))
+        (define content (process vec i))
+        (aif (and (String? content) (regex-match #/<a.*>([01])<\/a>/ content))
+            (set! color-class (if (equal? (it 1) "1") "blackcell" "whitecell"))
         )
+        (unescaped-data (String:format "<td class=\"%s\">%s</td>" color-class content))
     ))
 )
 
@@ -168,11 +182,19 @@
     )
 )
 
-(define (make-rules-table rulenum)
+(define (make-rules-table rulenum depth seed)
     (define (make-rule-cell idx val)
         (table-of-bitvector-list
-            (list (ensure-minimum-length (bitvector-of-int idx) 3) (u8vector -1 val -1))
-            (lambda (vec i) (vec i)) #f)
+            (list (ensure-minimum-length (bitvector-of-int idx) 3) (u8vector -1 -2 -1))
+            (lambda (vec i)
+                (printf "handling vec %s i %s\n" vec i)
+                (cond ((< (vec i) 2) (vec i))
+                      ((= (vec i) 255) "")
+                      ((= (vec i) 254) (make-toggle-link-rule rulenum depth seed idx))
+                )
+            )
+            #f
+        )
     )
     (define rulevec (rulevec-of-rulenum rulenum))
     (apply html:div "Rewrite rules: " (html:br)
@@ -215,7 +237,7 @@
 (define (make-cell-grid rulenum seedvec min-width depth)
     (table-of-bitvector-list
         (calculate-grid rulenum (ensure-minimum-length seedvec min-width) depth)
-        (lambda (vec i) (make-toggle-link rulenum depth vec i))
+        (lambda (vec i) (make-toggle-link-seed rulenum depth vec i))
         #t
     )
 )
@@ -237,8 +259,9 @@
             (num-iterations (aif (match 3) (Integer:valueOf it 10) *default-iteration-count*))
             ;(sometable (list (table-of-bitvector-list (accumulate-range (i 1 100 1) (ensure-minimum-length (bitvector-of-int i) 10)))))
             (links (list (make-links rulenum seedstr num-iterations)))
-            (ruletable (list (make-rules-table rulenum)))
-            (datatable (list (make-cell-grid rulenum (make-seed-vector seedstr *seed-mode*) *minimum-width* num-iterations)))
+            (seed (make-seed-vector seedstr *seed-mode*))
+            (ruletable (list (make-rules-table rulenum num-iterations seed)))
+            (datatable (list (make-cell-grid rulenum seed *minimum-width* num-iterations)))
         )
         (apply html:span (append links rulenode seednode ruletable (list (html:br)) datatable))
     )
